@@ -1,0 +1,225 @@
+title,body,labels,assignees,milestone
+Criar repositório GitHub e adicionar o professor,"Criar o repositório da equipe, configurar branch principal protegida, adicionar todos os membros e o professor (usuário/e-mail informado no enunciado) como colaborador.
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 1",infra,,Sprint 1
+Configurar quadro do projeto (GitHub Projects),"Criar o Project com colunas Backlog/To Do/In Progress/Review/Done e os Milestones Sprint 1 a Sprint 7 com datas.
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 1",infra,,Sprint 1
+Escrever guia de instalação do ambiente,"Documentar passo a passo de instalação de Flex, Bison e GCC para Linux/Mac/WSL, baseado no guia de configuração da semana 01, e publicar em `docs/`.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 1",infra,,Sprint 1
+Criar estrutura inicial de pastas e Makefile,"Criar a estrutura `src/`, `docs/`, `exemplos/` e um `Makefile` inicial capaz de compilar um ""hello world"" com Flex+Bison.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 1",infra,,Sprint 1
+"Validar ambiente individual — rodar ""Hello World"" Flex/Bison","Cada integrante compila e executa localmente o exemplo hello.l/hello.y da semana 01, e comenta na Issue confirmando sucesso (ou reportando erro).
+
+Responsável sugerido: Integrante 1, 2, 3, 4 e 5 *(uma issue por pessoa)*
+Sprint: Sprint 1",infra,,Sprint 1
+Levantar construções essenciais da linguagem MiniC,"Reunião/brainstorm para decidir quais tipos, operadores e estruturas de controle farão parte do MiniC V1, revisando o escopo já definido (seção 2.1).
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 1",spec,,Sprint 1
+Escrever especificação da linguagem MiniC V1,"Redigir `docs/especificacao-minic.md` descrevendo tipos, operadores, estruturas de controle, funções, entrada/saída e comentários, com exemplos de código para cada construção.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 1",spec,,Sprint 1
+Elaborar gramática livre de contexto preliminar (BNF/EBNF),"Escrever a primeira versão da gramática formal do MiniC (ainda em papel/markdown, não em `.y`), cobrindo declarações, expressões, comandos e funções.
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 1",spec,,Sprint 1
+Criar programas MiniC de referência,"Escrever manualmente (em `.c`) os programas fatorial, Fibonacci e MDC, que servirão como demonstração e validação manual do interpretador nas próximas sprints, garantindo que compilam no GCC padrão.
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 1",spec,,Sprint 1
+Lexer: tokens de palavras-chave e tipos,"Implementar em `lexer.l` o reconhecimento de `int`, `float`, `char`, `if`, `else`, `while`, `for`, `return`.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 2",lexer,,Sprint 2
+"Lexer: identificadores, números e literais","Implementar reconhecimento de identificadores, literais inteiros, literais float, literais char e string.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 2",lexer,,Sprint 2
+Lexer: operadores e pontuação,"Implementar reconhecimento de operadores aritméticos, relacionais, lógicos, atribuição e símbolos (`; , ( ) { }`).
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 2",lexer,,Sprint 2
+Lexer: espaços em branco e comentários,"Implementar ignorar espaços/tabs/quebras de linha e tratar comentários `//` e `/* */` (inclusive multilinha).
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 2",lexer,,Sprint 2
+Parser: esqueleto com declaração de tokens,"Criar `parser.y` inicial com `%token` para todos os tokens do lexer e definir precedência/associatividade dos operadores.
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 2",parser,,Sprint 2
+Parser: declarações de variáveis,"Implementar regras gramaticais para declaração de variável com inicialização opcional (`int x = 10;`).
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 2",parser,,Sprint 2
+Parser: expressões,"Implementar regras gramaticais para expressões aritméticas, relacionais e lógicas, respeitando precedência.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 2",parser,,Sprint 2
+Parser: if/if-else e while (sem AST),"Implementar regras gramaticais para `if`, `if-else` e `while`, apenas validando sintaxe (ainda sem construir AST).
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 2",parser,,Sprint 2
+Validar manualmente o fluxo léxico-sintático,"Rodar os programas de referência (fatorial, Fibonacci simplificados) contra o lexer e o parser, conferindo que a sintaxe é aceita sem erros.
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 2",parser,,Sprint 2
+Preparar apresentação e formulário do P1,"Montar slides mostrando tokens reconhecidos e regras sintáticas iniciais; preencher e enviar o formulário oficial de P1 (somente o líder envia).
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 2",docs;P1,,Sprint 2
+Definir estrutura de dados da AST,"Criar `ast.h` com os tipos de nó (expressão, declaração, comando, bloco, função) e seus campos.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 3",ast,,Sprint 3
+Implementar funções de construção da AST,"Implementar em `ast.c` as funções `criar_no_*()` para cada tipo de nó definido em `ast.h`.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 3",ast,,Sprint 3
+Integrar construção de AST às expressões no parser,"Modificar as ações semânticas de `parser.y` para que regras de expressão retornem nós de AST em vez de apenas validar sintaxe.
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 3",ast,,Sprint 3
+Integrar construção de AST aos comandos no parser,"Modificar as ações semânticas para `if/while/for/bloco/declaração` construírem os nós de AST correspondentes.
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 3",ast,,Sprint 3
+Implementar tabela de símbolos com escopos aninhados,"Criar `tabela.c`/`tabela.h` com inserção, busca e encadeamento de escopos (bloco → função → global).
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 3",symtab,,Sprint 3
+Integrar tabela de símbolos às declarações do parser,"Conectar a inserção de variáveis declaradas na tabela de símbolos durante o parsing.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 3",symtab,,Sprint 3
+Melhorar mensagens de erro sintático,"Implementar mensagens de erro com número da linha e token esperado/encontrado (usando `yyerror` customizado).
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 3",parser,,Sprint 3
+Criar função de impressão da AST (debug),"Implementar uma função que imprime a AST de forma legível (indentada), para depuração manual da equipe e demonstração na apresentação.
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 3",ast,,Sprint 3
+Validar manualmente programas corretos e com erro sintático,"Rodar o parser contra programas de referência corretos e contra variações propositalmente quebradas, conferindo se as mensagens de erro fazem sentido.
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 3",parser,,Sprint 3
+Documentar arquitetura da AST e tabela de símbolos,"Atualizar `docs/decisoes-tecnicas.md` explicando o design escolhido para AST e escopos.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 3",docs,,Sprint 3
+Semântica: variável não declarada,"Implementar verificação que reporta erro ao usar uma variável não presente na tabela de símbolos do escopo atual/pai.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 4",semantic,,Sprint 4
+Semântica: redeclaração de variável,"Implementar verificação que reporta erro ao declarar duas vezes a mesma variável no mesmo escopo.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 4",semantic,,Sprint 4
+Semântica: checagem básica de tipos,"Implementar verificação simples de compatibilidade de tipos em atribuições e expressões (ex.: `int = float` permitido com conversão, `int = char*` proibido).
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 4",semantic,,Sprint 4
+Parser/AST: definição de funções,"Implementar regra gramatical e nó de AST para definição de função (tipo de retorno, nome, lista de parâmetros, corpo).
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 4",parser;ast,,Sprint 4
+Parser/AST: chamada de função,"Implementar regra gramatical e nó de AST para chamada de função com lista de argumentos.
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 4",parser;ast,,Sprint 4
+Semântica: validação de chamada de função,"Verificar se a função chamada existe, e se número/tipo dos argumentos é compatível com a assinatura declarada.
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 4",semantic,,Sprint 4
+Semântica: comando return,"Implementar verificação de que o tipo do valor em `return` é compatível com o tipo de retorno da função.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 4",semantic,,Sprint 4
+Garantir suporte obrigatório a `int main()`,"Validar que todo programa MiniC precisa ter uma função `main` com assinatura `int main()`, reportando erro caso ausente.
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 4",semantic;parser,,Sprint 4
+Validar manualmente casos de erro semântico,"Rodar programas de referência com variações propositais (variável não declarada, redeclaração, erro de tipo, chamada de função inválida) e conferir as mensagens de erro.
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 4",semantic,,Sprint 4
+Atualizar documentação com regras semânticas,"Atualizar `docs/decisoes-tecnicas.md` com as regras de tipagem e escopo efetivamente implementadas.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 4",docs,,Sprint 4
+Ambiente de execução (pilha de escopos em runtime),"Implementar a estrutura de ambiente que guarda valores de variáveis em tempo de execução, com pilha para escopos de função.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 5",interpreter,,Sprint 5
+Interpretar expressões aritméticas/relacionais/lógicas,"Implementar `avaliar_expressao(no)` percorrendo recursivamente a AST e retornando o valor calculado.
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 5",interpreter,,Sprint 5
+Interpretar atribuições e acesso a variáveis,"Implementar leitura e escrita de variáveis no ambiente de execução durante a interpretação.
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 5",interpreter,,Sprint 5
+Interpretar if/if-else e while,"Implementar `interpretar_comando(no)` para os nós de `if`, `if-else` e `while`.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 5",interpreter,,Sprint 5
+Interpretar for,"Implementar a execução do laço `for` (inicialização, condição, incremento, corpo).
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 5",interpreter,,Sprint 5
+Interpretar chamada de função com pilha de ambientes,"Implementar chamada de função criando um novo ambiente/escopo, passando parâmetros por valor e tratando o retorno.
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 5",interpreter,,Sprint 5
+Implementar printf simplificado,"Implementar suporte a `printf` com os formatos `%d`, `%f`, `%c`, `%s`.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 5",interpreter,,Sprint 5
+Implementar scanf simplificado,"Implementar suporte a `scanf` para ler `int`, `float` e `char` do usuário, atualizando a variável correspondente no ambiente.
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 5",interpreter,,Sprint 5
+Validar manualmente interpretador vs. GCC,"Executar os mesmos programas MiniC no interpretador e compilados via GCC, comparando as saídas lado a lado como conferência de corretude.
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 5",interpreter,,Sprint 5
+Preparar apresentação e formulário do P2,"Montar slides mostrando o que evoluiu desde o P1 e demonstrando o interpretador funcionando; preencher e enviar o formulário oficial de P2.
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 5",docs;P2,,Sprint 5
+Validar manualmente programas maiores,"Rodar e conferir a execução completa de fatorial, Fibonacci, MDC e um algoritmo de ordenação simples no interpretador.
+
+Responsável sugerido: Integrante 3
+Sprint: Sprint 6",interpreter,,Sprint 6
+Corrigir bugs encontrados na consolidação,"Triagem e correção dos defeitos identificados na validação manual (uma issue por bug relevante).
+
+Responsável sugerido: Todos *(distribuir por área de origem do bug)*
+Sprint: Sprint 6",bug,,Sprint 6
+(Backlog) Operadores `++`/`--` e atribuições compostas,"Implementar suporte opcional a incremento/decremento e a `+=`, `-=`, `*=`, `/=`.
+
+Responsável sugerido: Integrante 4
+Sprint: Sprint 6",enhancement,,Sprint 6
+(Backlog) Vetores unidimensionais de tamanho fixo,"Implementar suporte opcional a declaração, acesso e atribuição em arrays de tamanho fixo.
+
+Responsável sugerido: Integrante 2
+Sprint: Sprint 6",enhancement,,Sprint 6
+(Backlog) Suporte a recursão,"Validar manualmente chamadas recursivas (fatorial recursivo, Fibonacci recursivo), garantindo que a pilha de ambientes suporta o caso.
+
+Responsável sugerido: Integrante 5
+Sprint: Sprint 6",enhancement,,Sprint 6
+Revisão de código cruzada (code review),"Cada integrante revisa um módulo que não implementou, abrindo comentários/PRs de ajuste.
+
+Responsável sugerido: Todos *(revisão cruzada em pares)*
+Sprint: Sprint 6",docs,,Sprint 6
+Atualizar status do backlog de expansão,"Atualizar a seção 4.2 do escopo indicando o que foi concluído, o que ficou de fora e por quê.
+
+Responsável sugerido: Integrante 1
+Sprint: Sprint 6",docs,,Sprint 6

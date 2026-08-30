@@ -1,0 +1,37 @@
+name: Sync Issues + Sprints (Projects v2)
+
+on:
+  workflow_dispatch:
+    inputs:
+      csv_path:
+        description: "Caminho do CSV dentro do repo"
+        required: false
+        default: "issues.csv"
+
+  # Descomente para rodar automaticamente ao dar push no CSV numa branch específica:
+  # push:
+  #   branches: [Documentacao]
+  #   paths:
+  #     - "issues.csv"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync issues to GitHub Project
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          REPO: ${{ github.repository }}
+          PROJECT_OWNER: ${{ vars.PROJECT_OWNER }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+          SPRINT_FIELD_NAME: "Sprint"
+          CSV_PATH: ${{ github.event.inputs.csv_path || 'issues.csv' }}
+        run: python3 scripts/sync_issues_to_project.py
