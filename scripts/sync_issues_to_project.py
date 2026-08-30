@@ -53,9 +53,12 @@ def gh_graphql(query, string_vars=None, raw_vars=None):
         cmd += ["-F", f"{k}={v}"]
     out = run(cmd)
     parsed = json.loads(out)
-    if "errors" in parsed:
+    # A API do GitHub pode retornar `errors` parcial (ex: "organization not found")
+    # mesmo quando a outra metade da query (ex: `user`) veio certa. Só tratamos como
+    # erro fatal se não sobrou nenhum dado utilizável.
+    if "errors" in parsed and not parsed.get("data"):
         raise RuntimeError(f"GraphQL retornou erro: {json.dumps(parsed['errors'], ensure_ascii=False)}")
-    return parsed["data"]
+    return parsed.get("data") or {}
 
 
 def check_auth():
