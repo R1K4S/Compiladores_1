@@ -53,12 +53,9 @@ def gh_graphql(query, string_vars=None, raw_vars=None):
         cmd += ["-F", f"{k}={v}"]
     out = run(cmd)
     parsed = json.loads(out)
-    # A API do GitHub pode retornar `errors` parcial (ex: "organization not found")
-    # mesmo quando a outra metade da query (ex: `user`) veio certa. Só tratamos como
-    # erro fatal se não sobrou nenhum dado utilizável.
-    if "errors" in parsed and not parsed.get("data"):
+    if "errors" in parsed:
         raise RuntimeError(f"GraphQL retornou erro: {json.dumps(parsed['errors'], ensure_ascii=False)}")
-    return parsed.get("data") or {}
+    return parsed["data"]
 
 
 def check_auth():
@@ -110,20 +107,6 @@ query($login: String!, $number: Int!, $fieldName: String!) {
       }
     }
   }
-  organization(login: $login) {
-    projectV2(number: $number) {
-      id
-      field(name: $fieldName) {
-        ... on ProjectV2IterationField {
-          id
-          configuration {
-            iterations { id title }
-            completedIterations { id title }
-          }
-        }
-      }
-    }
-  }
 }
 """
 
@@ -136,12 +119,12 @@ def get_project_info():
         raw_vars={"number": PROJECT_NUMBER},
     )
 
-    project = (data.get("user") or {}).get("projectV2") or (data.get("organization") or {}).get("projectV2")
+    project = (data.get("user") or {}).get("projectV2")
     if not project:
         raise RuntimeError(
-            f"Project número {PROJECT_NUMBER} não encontrado para o owner '{PROJECT_OWNER}' "
-            f"(nem como usuário nem como organização). Confirme o número do Project e se o "
-            f"token tem acesso a ele (Project > Settings > Manage access)."
+            f"Project número {PROJECT_NUMBER} não encontrado para o usuário '{PROJECT_OWNER}'. "
+            f"Confirme o número do Project e se o token tem acesso a ele "
+            f"(Project > Settings > Manage access)."
         )
 
     field = project.get("field")
