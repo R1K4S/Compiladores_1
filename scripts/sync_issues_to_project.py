@@ -5,12 +5,17 @@ Lê um CSV (colunas: title, body, milestone — labels/assignees são ignorados)
   2. Adiciona a issue ao GitHub Project (v2)
   3. Seta o campo "Sprint" (Iteration) do Project de acordo com a coluna `milestone` do CSV
 
+Usa `gh api graphql` diretamente (em vez de `gh project ...`) porque o subcomando
+`gh project` tem um bug conhecido que retorna "unknown owner type" tanto para
+token inválido quanto, às vezes, para projetos de conta pessoal (user-owned).
+Ver: https://github.com/cli/cli/issues/8885
+
 Autenticação: usa a variável de ambiente GH_TOKEN (o próprio `gh` CLI lê essa env var).
 O token precisa ter escopo `repo` + `project`.
 
 Configuração via variáveis de ambiente:
-  REPO             -> "owner/repo", ex: "R1K4S/minic"
-  PROJECT_OWNER    -> dono do Project, ex: "R1K4S"
+  REPO             -> "owner/repo", ex: "R1K4S/Compiladores_1"
+  PROJECT_OWNER    -> dono do Project (login do user ou da org), ex: "R1K4S"
   PROJECT_NUMBER   -> número do Project (aparece na URL, ex: .../projects/3 -> 3)
   SPRINT_FIELD_NAME-> nome do campo Iteration no Project (default: "Sprint")
   CSV_PATH         -> caminho do CSV (default: "issues.csv")
@@ -24,7 +29,7 @@ import sys
 
 REPO = os.environ["REPO"]
 PROJECT_OWNER = os.environ["PROJECT_OWNER"]
-PROJECT_NUMBER = os.environ["PROJECT_NUMBER"]
+PROJECT_NUMBER = int(os.environ["PROJECT_NUMBER"])
 SPRINT_FIELD_NAME = os.environ.get("SPRINT_FIELD_NAME", "Sprint")
 CSV_PATH = os.environ.get("CSV_PATH", "issues.csv")
 
@@ -39,70 +44,162 @@ def run(cmd, **kwargs):
     return result.stdout.strip()
 
 
+def gh_graphql(query, string_vars=None, raw_vars=None):
+    """Executa uma query/mutation GraphQL via `gh api graphql` e retorna o `data` já parseado."""
+    cmd = ["gh", "api", "graphql", "-f", f"query={query}"]
+    for k, v in (string_vars or {}).items():
+        cmd += ["-f", f"{k}={v}"]
+    for k, v in (raw_vars or {}).items():
+        cmd += ["-F", f"{k}={v}"]
+    out = run(cmd)
+    parsed = json.loads(out)
+    if "errors" in parsed:
+        raise RuntimeError(f"GraphQL retornou erro: {json.dumps(parsed['errors'], ensure_ascii=False)}")
+    return parsed["data"]
+
+
+def check_auth():
+    """Confirma que o token é válido e mostra de quem é, para facilitar diagnóstico nos logs."""
+    data = gh_graphql("query { viewer { login } }")
+    login = data["viewer"]["login"]
+    print(f"Token autenticado como: {login}")
+
+
 def get_existing_issue_titles():
     out = run([
         "gh", "issue", "list", "--repo", REPO,
         "--state", "all", "--limit", "500",
-        "--json", "title,url",
+        "--json", "title,url,number",
     ])
     data = json.loads(out)
-    return {item["title"]: item["url"] for item in data}
+    return {item["title"]: item for item in data}
 
 
 def create_issue(title, body):
     cmd = ["gh", "issue", "create", "--repo", REPO, "--title", title, "--body", body]
     url = run(cmd)
-    return url.strip().splitlines()[-1]
+    url = url.strip().splitlines()[-1]
+    number = int(url.rstrip("/").split("/")[-1])
+    return url, number
+
+
+def get_issue_node_id(issue_number):
+    out = run([
+        "gh", "issue", "view", str(issue_number), "--repo", REPO,
+        "--json", "id", "--jq", ".id",
+    ])
+    return out.strip()
+
+
+PROJECT_QUERY = """
+query($login: String!, $number: Int!, $fieldName: String!) {
+  user(login: $login) {
+    projectV2(number: $number) {
+      id
+      field(name: $fieldName) {
+        ... on ProjectV2IterationField {
+          id
+          configuration {
+            iterations { id title }
+            completedIterations { id title }
+          }
+        }
+      }
+    }
+  }
+  organization(login: $login) {
+    projectV2(number: $number) {
+      id
+      field(name: $fieldName) {
+        ... on ProjectV2IterationField {
+          id
+          configuration {
+            iterations { id title }
+            completedIterations { id title }
+          }
+        }
+      }
+    }
+  }
+}
+"""
 
 
 def get_project_info():
     """Retorna (project_id, sprint_field_id, {iteration_title: iteration_id})."""
-    out = run([
-        "gh", "project", "view", PROJECT_NUMBER,
-        "--owner", PROJECT_OWNER, "--format", "json",
-    ])
-    project = json.loads(out)
-    project_id = project["id"]
+    data = gh_graphql(
+        PROJECT_QUERY,
+        string_vars={"login": PROJECT_OWNER, "fieldName": SPRINT_FIELD_NAME},
+        raw_vars={"number": PROJECT_NUMBER},
+    )
 
-    out = run([
-        "gh", "project", "field-list", PROJECT_NUMBER,
-        "--owner", PROJECT_OWNER, "--format", "json",
-    ])
-    fields = json.loads(out)["fields"]
-
-    sprint_field = next((f for f in fields if f.get("name") == SPRINT_FIELD_NAME), None)
-    if not sprint_field:
+    project = (data.get("user") or {}).get("projectV2") or (data.get("organization") or {}).get("projectV2")
+    if not project:
         raise RuntimeError(
-            f"Campo '{SPRINT_FIELD_NAME}' não encontrado no Project. "
-            f"Campos disponíveis: {[f.get('name') for f in fields]}"
+            f"Project número {PROJECT_NUMBER} não encontrado para o owner '{PROJECT_OWNER}' "
+            f"(nem como usuário nem como organização). Confirme o número do Project e se o "
+            f"token tem acesso a ele (Project > Settings > Manage access)."
         )
 
-    iterations = sprint_field.get("iterations", []) + sprint_field.get("completedIterations", [])
+    field = project.get("field")
+    if not field:
+        raise RuntimeError(
+            f"Campo '{SPRINT_FIELD_NAME}' não encontrado no Project, ou não é do tipo Iteration."
+        )
+
+    iterations = field["configuration"]["iterations"] + field["configuration"]["completedIterations"]
     iteration_map = {it["title"]: it["id"] for it in iterations}
 
-    return project_id, sprint_field["id"], iteration_map
+    return project["id"], field["id"], iteration_map
 
 
-def add_item_to_project(issue_url):
-    out = run([
-        "gh", "project", "item-add", PROJECT_NUMBER,
-        "--owner", PROJECT_OWNER, "--url", issue_url, "--format", "json",
-    ])
-    return json.loads(out)["id"]
+ADD_ITEM_MUTATION = """
+mutation($projectId: ID!, $contentId: ID!) {
+  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+    item { id }
+  }
+}
+"""
 
 
-def set_sprint(item_id, project_id, sprint_field_id, iteration_id):
-    run([
-        "gh", "project", "item-edit",
-        "--id", item_id,
-        "--field-id", sprint_field_id,
-        "--project-id", project_id,
-        "--iteration-id", iteration_id,
-    ])
+def add_item_to_project(project_id, issue_node_id):
+    data = gh_graphql(
+        ADD_ITEM_MUTATION,
+        string_vars={"projectId": project_id, "contentId": issue_node_id},
+    )
+    return data["addProjectV2ItemById"]["item"]["id"]
+
+
+SET_ITERATION_MUTATION = """
+mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $iterationId: String!) {
+  updateProjectV2ItemFieldValue(input: {
+    projectId: $projectId,
+    itemId: $itemId,
+    fieldId: $fieldId,
+    value: { iterationId: $iterationId }
+  }) {
+    projectV2Item { id }
+  }
+}
+"""
+
+
+def set_sprint(project_id, item_id, sprint_field_id, iteration_id):
+    gh_graphql(
+        SET_ITERATION_MUTATION,
+        string_vars={
+            "projectId": project_id,
+            "itemId": item_id,
+            "fieldId": sprint_field_id,
+            "iterationId": iteration_id,
+        },
+    )
 
 
 def main():
     print(f"Repo: {REPO} | Project: {PROJECT_OWNER}/{PROJECT_NUMBER} | Campo sprint: {SPRINT_FIELD_NAME}")
+
+    check_auth()
 
     with open(CSV_PATH, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
@@ -126,20 +223,21 @@ def main():
 
         if title in existing_titles:
             print("  já existe, pulando criação da issue")
-            issue_url = existing_titles[title]
+            issue_number = existing_titles[title]["number"]
             skipped += 1
         else:
-            issue_url = create_issue(title, body)
+            issue_url, issue_number = create_issue(title, body)
             print(f"  criada: {issue_url}")
             created += 1
 
-        item_id = add_item_to_project(issue_url)
+        issue_node_id = get_issue_node_id(issue_number)
+        item_id = add_item_to_project(project_id, issue_node_id)
         linked += 1
 
         if milestone:
             iteration_id = iteration_map.get(milestone)
             if iteration_id:
-                set_sprint(item_id, project_id, sprint_field_id, iteration_id)
+                set_sprint(project_id, item_id, sprint_field_id, iteration_id)
                 print(f"  sprint definida: {milestone}")
             else:
                 msg = f"'{milestone}' não bate com nenhuma iteration do campo '{SPRINT_FIELD_NAME}'"
