@@ -7,6 +7,12 @@
 "//".*                          { /* Ignorar os comentarios de uma linha */ }
 "/*"([^*]|\*+[^*/])*\*+"/"      { /* Ignorar os comentarios multilinha */ }
 
+"if"            { return IF; }
+"else"          { return ELSE; }
+"while"         { return WHILE; }
+"{"             { return LBRACE; }
+"}"             { return RBRACE; }
+
 [0-9]+          { yylval = atoi(yytext); return NUM; }
 "+"             { return PLUS; }
 "-"             { return MINUS; }
