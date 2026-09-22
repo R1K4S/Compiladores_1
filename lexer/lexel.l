@@ -4,8 +4,8 @@
 
 %%
 
-"//".*                          { /* Ignorar comentarios de uma linha */ }
-"/*"([^*]|\*+[^*/])*\*+"/"      { /* Ignorar comentarios multilinha */ }
+"//".*                          { /* Ignorar os comentarios de uma linha */ }
+"/*"([^*]|\*+[^*/])*\*+"/"      { /* Ignorar os comentarios multilinha */ }
 
 [0-9]+          { yylval = atoi(yytext); return NUM; }
 "+"             { return PLUS; }
