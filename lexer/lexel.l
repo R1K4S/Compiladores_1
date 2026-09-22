@@ -15,3 +15,4 @@
 .               { printf("Caractere inválido: %s\n", yytext); }
 
 %%
+int yywrap(void) { return 1; }
