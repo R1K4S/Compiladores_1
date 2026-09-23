@@ -1,26 +1,4 @@
 #!/usr/bin/env python3
-"""
-Lê um CSV (colunas: title, body, milestone — labels/assignees são ignorados) e:
-  1. Cria cada linha como uma Issue no repositório (evitando duplicar se já existir issue com o mesmo título)
-  2. Adiciona a issue ao GitHub Project (v2)
-  3. Seta o campo "Sprint" (Iteration) do Project de acordo com a coluna `milestone` do CSV
-
-Usa `gh api graphql` diretamente (em vez de `gh project ...`) porque o subcomando
-`gh project` tem um bug conhecido que retorna "unknown owner type" tanto para
-token inválido quanto, às vezes, para projetos de conta pessoal (user-owned).
-Ver: https://github.com/cli/cli/issues/8885
-
-Autenticação: usa a variável de ambiente GH_TOKEN (o próprio `gh` CLI lê essa env var).
-O token precisa ter escopo `repo` + `project`.
-
-Configuração via variáveis de ambiente:
-  REPO             -> "owner/repo", ex: "R1K4S/Compiladores_1"
-  PROJECT_OWNER    -> dono do Project (login do user ou da org), ex: "R1K4S"
-  PROJECT_NUMBER   -> número do Project (aparece na URL, ex: .../projects/3 -> 3)
-  SPRINT_FIELD_NAME-> nome do campo Iteration no Project (default: "Sprint")
-  CSV_PATH         -> caminho do CSV (default: "issues.csv")
-"""
-
 import csv
 import json
 import os
