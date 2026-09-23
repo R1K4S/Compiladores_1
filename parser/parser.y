@@ -56,7 +56,7 @@ comando:
     | LBRACE lista_comandos RBRACE
 
       /* Regra base: permite que um comando seja apenas uma expressão */
-    | expressao
+    | expressao SEMI
     ;
 
 expressao:
