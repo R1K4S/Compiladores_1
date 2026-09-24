@@ -7,11 +7,6 @@
 "//".*                          { /* Ignorar os comentarios de uma linha */ }
 "/*"([^*]|\*+[^*/])*\*+"/"      { /* Ignorar os comentarios multilinha */ }
 
-"if"            { return IF; }
-"else"          { return ELSE; }
-"while"         { return WHILE; }
-"{"             { return LBRACE; }
-"}"             { return RBRACE; }
 "int"           { return INT; }
 "float"         { return FLOAT; }
 "char"          { return CHAR; }
@@ -19,6 +14,9 @@
 "else"          { return ELSE; }
 "while"         { return WHILE; }
 "return"        { return RETURN; }
+[a-zA-Z_][a-zA-Z0-9_]*  { return ID; }
+"{"             { return LBRACE; }
+"}"             { return RBRACE; }
 
 [0-9]+          { yylval = atoi(yytext); return NUM; }
 "+"             { return PLUS; }
@@ -27,6 +25,8 @@
 "/"             { return DIVIDE; }
 "("             { return LPAREN; }
 ")"             { return RPAREN; }
+"="             { return ASSIGN; }
+";"             { return SEMICOLON; }
 [ \t\n\r]+      { /* Ignorar espacos em branco, tabs e quebras de linha */ }
 .               { printf("Caractere invalido: %s\n", yytext); }
 

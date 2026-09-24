@@ -6,7 +6,7 @@ int yylex(void);
 void yyerror(const char *s);
 %}
 
-%token NUM PLUS MINUS TIMES DIVIDE LPAREN RPAREN
+%token NUM ID PLUS MINUS TIMES DIVIDE LPAREN RPAREN ASSIGN SEMICOLON
 %token INT FLOAT CHAR IF ELSE WHILE RETURN LBRACE RBRACE
 
 /* Solução para a ambiguidade do if-else (Dangling-Else) */
@@ -43,6 +43,9 @@ comando:
       /* Regra para blocos de código com chaves { } */
     | LBRACE lista_comandos RBRACE
 
+      /* Declaração de variável */
+    | declaracao
+
       /* Regra base: permite que um comando seja apenas uma expressão */
     | expressao
     ;
@@ -56,6 +59,16 @@ expressao:
   | NUM
   ;
 
+declaracao:
+      tipo ID SEMICOLON                      /* int x;        */
+    | tipo ID ASSIGN expressao SEMICOLON     /* int x = 10;   */
+    ;
+
+tipo:
+      INT
+    | FLOAT
+    | CHAR
+    ;
 %%
 
 void yyerror(const char *s) {
