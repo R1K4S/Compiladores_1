@@ -7,7 +7,7 @@ void yyerror(const char *s);
 %}
 
 %token NUM PLUS MINUS TIMES DIVIDE LPAREN RPAREN
-%token IF ELSE WHILE LBRACE RBRACE
+%token INT FLOAT CHAR IF ELSE WHILE RETURN LBRACE RBRACE
 
 /* Solução para a ambiguidade do if-else (Dangling-Else) */
 %nonassoc LOWER_THAN_ELSE
@@ -46,7 +46,7 @@ comando:
       /* Regra base: permite que um comando seja apenas uma expressão */
     | expressao
     ;
-    
+
 expressao:
     expressao PLUS expressao
   | expressao MINUS expressao
