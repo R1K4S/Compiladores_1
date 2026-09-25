@@ -20,10 +20,13 @@
 
 [a-zA-Z_][a-zA-Z0-9_]*              { return ID; }
 
+[0-9]+\.[0-9]+                      { return NUM_FLOAT; }
 [0-9]+                              {
                                         yylval = atoi(yytext);
                                         return NUM;
                                     }
+'([^'\\\n]|\\.)'                    { yylval = yytext[1]; return CHAR_LITERAL; }
+\"([^\"\\\n]|\\.)*\"                { return STRING_LITERAL; }
 
 "=="                                { return EQ; }
 "!="                                { return NEQ; }

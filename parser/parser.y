@@ -6,7 +6,7 @@ int yylex(void);
 void yyerror(const char *s);
 %}
 
-%token ID NUM
+%token ID NUM NUM_FLOAT CHAR_LITERAL STRING_LITERAL
 
 %token PLUS MINUS TIMES DIVIDE MOD
 
@@ -102,6 +102,9 @@ expressao:
     | LPAREN expressao RPAREN
     | ID
     | NUM
+    | NUM_FLOAT
+    | CHAR_LITERAL
+    | STRING_LITERAL
     ;
 
 %%
