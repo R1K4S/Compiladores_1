@@ -6,7 +6,7 @@ int yylex(void);
 void yyerror(const char *s);
 %}
 
-%token NUM ID PLUS MINUS TIMES DIVIDE LPAREN RPAREN ASSIGN SEMICOLON
+%token NUM NUM_FLOAT CHAR_LITERAL STRING_LITERAL ID PLUS MINUS TIMES DIVIDE LPAREN RPAREN ASSIGN SEMICOLON
 %token INT FLOAT CHAR IF ELSE WHILE RETURN LBRACE RBRACE
 
 /* Solução para a ambiguidade do if-else (Dangling-Else) */

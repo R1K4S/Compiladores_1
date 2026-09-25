@@ -18,7 +18,10 @@
 "{"             { return LBRACE; }
 "}"             { return RBRACE; }
 
+[0-9]+\.[0-9]+  { return NUM_FLOAT; }
 [0-9]+          { yylval = atoi(yytext); return NUM; }
+'([^'\\\n]|\\.)'        { yylval = yytext[1]; return CHAR_LITERAL; }
+\"([^\"\\\n]|\\.)*\"    { return STRING_LITERAL; }
 "+"             { return PLUS; }
 "-"             { return MINUS; }
 "*"             { return TIMES; }
