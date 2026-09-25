@@ -1,53 +1,68 @@
 %{
 #include "parser.tab.h"
+#include <stdlib.h>
+#include <stdio.h>
 %}
 
 %%
 
-"//".*                          { /* Ignorar os comentarios de uma linha */ }
-"/*"([^*]|\*+[^*/])*\*+"/"      { /* Ignorar os comentarios multilinha */ }
+"//".*                              { /* Ignora comentario de uma linha */ }
+"/*"([^*]|\*+[^*/])*\*+"/"          { /* Ignora comentario multilinha */ }
 
-"if"            { return IF; }
-"else"          { return ELSE; }
-"while"         { return WHILE; }
-"{"             { return LBRACE; }
-"}"             { return RBRACE; }
-"int"           { return INT; }
-"float"         { return FLOAT; }
-"char"          { return CHAR; }
-"return"        { return RETURN; }
+"if"                                { return IF; }
+"else"                              { return ELSE; }
+"while"                             { return WHILE; }
 
-[0-9]+          { yylval = atoi(yytext); return NUM; }
+"int"                               { return INT; }
+"float"                             { return FLOAT; }
+"char"                              { return CHAR; }
+"return"                            { return RETURN; }
 
-    /* Operadores de dois caracteres */
-"=="            { return EQ; }
-"!="            { return NEQ; }
-"<="            { return LE; }
-">="            { return GE; }
-"&&"            { return AND; }
-"||"            { return OR; }
+[a-zA-Z_][a-zA-Z0-9_]*              { return ID; }
 
-    /* Relacionais de um caractere, lógico não e atribuição */
-"<"             { return LT; }
-">"             { return GT; }
-"!"             { return NOT; }
-"="             { return ASSIGN; }
+[0-9]+                              {
+                                        yylval = atoi(yytext);
+                                        return NUM;
+                                    }
 
-    /* Aritméticos */
-"+"             { return PLUS; }
-"-"             { return MINUS; }
-"*"             { return TIMES; }
-"/"             { return DIVIDE; }
-"%"             { return MOD; }
+"=="                                { return EQ; }
+"!="                                { return NEQ; }
+"<="                                { return LE; }
+">="                                { return GE; }
+"&&"                                { return AND; }
+"||"                                { return OR; }
 
-    /* Pontuação (LBRACE/RBRACE já tratados acima, junto das palavras-chave) */
-"("             { return LPAREN; }
-")"             { return RPAREN; }
-";"             { return SEMI; }
-","             { return COMMA; }
+"<"                                 { return LT; }
+">"                                 { return GT; }
+"!"                                 { return NOT; }
+"="                                 { return ASSIGN; }
 
-[ \t\n\r]+      { /* Ignorar espacos em branco, tabs e quebras de linha */ }
-.               { printf("Caractere invalido: %s\n", yytext); }
+"+"                                 { return PLUS; }
+"-"                                 { return MINUS; }
+"*"                                 { return TIMES; }
+"/"                                 { return DIVIDE; }
+"%"                                 { return MOD; }
+
+"("                                 { return LPAREN; }
+")"                                 { return RPAREN; }
+"{"                                 { return LBRACE; }
+"}"                                 { return RBRACE; }
+";"                                 { return SEMI; }
+","                                 { return COMMA; }
+
+[ \t\n\r]+                          { /* Ignora espacos */ }
+
+.                                   {
+                                        fprintf(
+                                            stderr,
+                                            "Caractere invalido: %s\n",
+                                            yytext
+                                        );
+                                    }
 
 %%
-int yywrap(void) { return 1; }
+
+int yywrap(void)
+{
+    return 1;
+}

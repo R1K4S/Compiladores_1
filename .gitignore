@@ -1,1 +1,5 @@
 build/
+parser/parser.tab.c
+parser/parser.tab.h
+lexer/lex.yy.c
+teste_compilador
