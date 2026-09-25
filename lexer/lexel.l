@@ -12,6 +12,10 @@
 "while"         { return WHILE; }
 "{"             { return LBRACE; }
 "}"             { return RBRACE; }
+"int"           { return INT; }
+"float"         { return FLOAT; }
+"char"          { return CHAR; }
+"return"        { return RETURN; }
 
 [0-9]+          { yylval = atoi(yytext); return NUM; }
 

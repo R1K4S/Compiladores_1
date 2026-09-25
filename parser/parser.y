@@ -13,6 +13,7 @@ void yyerror(const char *s);
 %token ASSIGN
 %token LPAREN RPAREN LBRACE RBRACE SEMI COMMA
 %token IF ELSE WHILE
+%token INT FLOAT CHAR RETURN
 
 /* Solução para a ambiguidade do if-else (Dangling-Else) */
 %nonassoc LOWER_THAN_ELSE
