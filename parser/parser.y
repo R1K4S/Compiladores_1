@@ -14,8 +14,14 @@ void yyerror(const char *s);
 %nonassoc ELSE
 
 /* Precedência matemática para evitar conflitos de Shift/Reduce */
-%left PLUS MINUS
-%left TIMES DIVIDE
+%right ASSIGN
+%left  OR
+%left  AND
+%left  EQ NEQ
+%left  LT GT LE GE
+%left  PLUS MINUS
+%left  TIMES DIVIDE
+%right NOT
 
 %%
 
