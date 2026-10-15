@@ -23,7 +23,7 @@ typedef enum {
 /* Estrutura genérica do Nó da AST */
 typedef struct NoAST {
     TipoNo tipo;
-    
+
     // Ponteiros para estruturação da árvore e sub-blocos
     struct NoAST* esq;      // Filho esquerdo (ex: operando esquerdo, condição)
     struct NoAST* dir;      // Filho direito (ex: operando direito, bloco if)

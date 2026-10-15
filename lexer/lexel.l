@@ -2,6 +2,7 @@
 #include "parser.tab.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 %}
 
 %%
@@ -18,15 +19,18 @@
 "char"                              { return CHAR; }
 "return"                            { return RETURN; }
 
-[a-zA-Z_][a-zA-Z0-9_]*              { return ID; }
+[a-zA-Z_][a-zA-Z0-9_]*              { yylval.sval = strdup(yytext); return ID; }
 
-[0-9]+\.[0-9]+                      { return NUM_FLOAT; }
+[0-9]+\.[0-9]+                      {
+                                        yylval.fval = atof(yytext);
+                                        return NUM_FLOAT;
+                                    }
 [0-9]+                              {
-                                        yylval = atoi(yytext);
+                                        yylval.ival = atoi(yytext);
                                         return NUM;
                                     }
-'([^'\\\n]|\\.)'                    { yylval = yytext[1]; return CHAR_LITERAL; }
-\"([^\"\\\n]|\\.)*\"                { return STRING_LITERAL; }
+'([^'\\\n]|\\.)'                    { yylval.cval = yytext[1]; return CHAR_LITERAL; }
+\"([^\"\\\n]|\\.)*\"                { yylval.sval = strdup(yytext); return STRING_LITERAL; }
 
 "=="                                { return EQ; }
 "!="                                { return NEQ; }
