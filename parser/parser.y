@@ -5,6 +5,8 @@
 
 int yylex(void);
 void yyerror(const char *s);
+
+NoAST *raiz = NULL;
 %}
 
 %union {
@@ -32,13 +34,16 @@ void yyerror(const char *s);
 %token LBRACE RBRACE
 %token SEMI COMMA
 
-%token IF ELSE WHILE
+%token IF ELSE WHILE FOR
 
 %token INT FLOAT CHAR
 
 %token RETURN
 
 %type <node> expressao
+%type <node> programa lista_comandos comando
+%type <node> declaracao lista_declaracoes declaracao_variavel
+%type <ival> tipo
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
@@ -56,44 +61,60 @@ void yyerror(const char *s);
 %%
 
 programa:
-      lista_comandos
+      lista_comandos                { raiz = criar_no_bloco($1); $$ = raiz; }
     ;
 
 lista_comandos:
-      lista_comandos comando
-    | comando
+      lista_comandos comando        { $$ = ligar_nos($1, $2); }
+    | comando                       { $$ = $1; }
     ;
 
 comando:
       IF LPAREN expressao RPAREN comando %prec LOWER_THAN_ELSE
+                                     { $$ = criar_no_if($3, $5, NULL); }
     | IF LPAREN expressao RPAREN comando ELSE comando
+                                     { $$ = criar_no_if($3, $5, $7); }
     | WHILE LPAREN expressao RPAREN comando
+                                     { $$ = criar_no_while($3, $5); }
+    | FOR LPAREN expressao SEMI expressao SEMI expressao RPAREN comando
+                                     { $$ = criar_no_for($3, $5, $7, $9); }
     | LBRACE lista_comandos RBRACE
-    | declaracao
-    | RETURN expressao SEMI
-    | expressao SEMI
+                                     { $$ = criar_no_bloco($2); }
+    | declaracao                    { $$ = $1; }
+    | RETURN expressao SEMI         { $$ = criar_no_return($2); }
+    | expressao SEMI                { $$ = $1; }
     ;
 
 declaracao:
       tipo ID SEMI
+          { $$ = criar_no_declaracao($1, criar_no_id($2), NULL); }
     | tipo ID ASSIGN expressao SEMI
+          { $$ = criar_no_declaracao($1, criar_no_id($2), $4); }
     | tipo lista_declaracoes SEMI
+          {
+              NoAST *atual = $2;
+              while (atual != NULL) {
+                  atual->dado.tipo_dado = $1;
+                  atual = atual->proximo;
+              }
+              $$ = $2;
+          }
     ;
 
 lista_declaracoes:
-      declaracao_variavel
-    | lista_declaracoes COMMA declaracao_variavel
+      declaracao_variavel                           { $$ = $1; }
+    | lista_declaracoes COMMA declaracao_variavel   { $$ = ligar_nos($1, $3); }
     ;
 
 declaracao_variavel:
-      ID
-    | ID ASSIGN expressao
+      ID                      { $$ = criar_no_declaracao(0, criar_no_id($1), NULL); }
+    | ID ASSIGN expressao     { $$ = criar_no_declaracao(0, criar_no_id($1), $3); }
     ;
 
 tipo:
-      INT
-    | FLOAT
-    | CHAR
+      INT    { $$ = INT; }
+    | FLOAT  { $$ = FLOAT; }
+    | CHAR   { $$ = CHAR; }
     ;
 
 expressao:

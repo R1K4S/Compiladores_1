@@ -14,9 +14,10 @@ typedef enum {
     NO_DECLARACAO,
     NO_IF,
     NO_WHILE,
+    NO_FOR,
     NO_BLOCO,
     NO_RETURN,
-    NO_FUNCAO,      // Preparado para expansão futura
+    NO_FUNCAO,
     NO_PROGRAMA
 } TipoNo;
 
@@ -55,6 +56,7 @@ NoAST* criar_no_atribuicao(NoAST* id, NoAST* expressao);
 NoAST* criar_no_declaracao(int tipo_dado, NoAST* id, NoAST* expressao);
 NoAST* criar_no_if(NoAST* condicao, NoAST* bloco_if, NoAST* bloco_else);
 NoAST* criar_no_while(NoAST* condicao, NoAST* bloco);
+NoAST* criar_no_for(NoAST* init, NoAST* condicao, NoAST* incremento, NoAST* corpo);
 NoAST* criar_no_bloco(NoAST* lista_comandos);
 NoAST* criar_no_return(NoAST* expressao);
 NoAST* criar_no_funcao(int tipo_retorno, const char* nome, NoAST* parametros, NoAST* bloco);

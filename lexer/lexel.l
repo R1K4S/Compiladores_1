@@ -13,6 +13,7 @@
 "if"                                { return IF; }
 "else"                              { return ELSE; }
 "while"                             { return WHILE; }
+"for"                               { return FOR; }
 
 "int"                               { return INT; }
 "float"                             { return FLOAT; }

@@ -33,7 +33,7 @@ NoAST* criar_no_literal_float(float valor) {
 NoAST* criar_no_literal_char(char valor) {
     NoAST* no = alocar_no(NO_LITERAL_CHAR);
     // Armazenando char dentro do inteiro da union para simplificar
-    no->dado.valor_int = (int)valor; 
+    no->dado.valor_int = (int)valor;
     return no;
 }
 
@@ -91,6 +91,15 @@ NoAST* criar_no_while(NoAST* condicao, NoAST* bloco) {
     NoAST* no = alocar_no(NO_WHILE);
     no->esq = condicao;
     no->dir = bloco;
+    return no;
+}
+
+NoAST* criar_no_for(NoAST* init, NoAST* condicao, NoAST* incremento, NoAST* corpo) {
+    NoAST* no = alocar_no(NO_FOR);
+    init->proximo = condicao;
+    condicao->proximo = incremento;
+    no->esq = init;
+    no->dir = corpo;
     return no;
 }
 
