@@ -16,12 +16,14 @@ LEXER_SRC  := $(LEXER_DIR)/lexel.l
 PARSER_SRC := $(PARSER_DIR)/parser.y
 MAIN_SRC   := $(SRC_DIR)/main.c
 AST_SRC    := $(SRC_DIR)/ast.c
+TABELA_SRC := $(SRC_DIR)/tabela.c
 
 LEXER_C    := $(BUILD_DIR)/lex.yy.c
 PARSER_C   := $(BUILD_DIR)/parser.tab.c
 PARSER_H   := $(BUILD_DIR)/parser.tab.h
 MAIN_O     := $(BUILD_DIR)/main.o
 AST_O      := $(BUILD_DIR)/ast.o
+TABELA_O   := $(BUILD_DIR)/tabela.o
 
 TARGET     := $(BUILD_DIR)/compilador
 
@@ -41,13 +43,17 @@ $(LEXER_C): $(LEXER_SRC) $(PARSER_H) | $(BUILD_DIR)
 $(AST_O): $(AST_SRC) $(SRC_DIR)/ast.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -c -o $(AST_O) $(AST_SRC)
 
+# Compila o tabela.c
+$(TABELA_O): $(TABELA_SRC) $(SRC_DIR)/tabela.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -c -o $(TABELA_O) $(TABELA_SRC)
+
 # Compila o main.c
-$(MAIN_O): $(MAIN_SRC) $(PARSER_H) $(SRC_DIR)/ast.h | $(BUILD_DIR)
+$(MAIN_O): $(MAIN_SRC) $(PARSER_H) $(SRC_DIR)/ast.h $(SRC_DIR)/tabela.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -c -o $(MAIN_O) $(MAIN_SRC)
 
-# Compila e linka lexer + parser + ast + main no executável final
-$(TARGET): $(LEXER_C) $(PARSER_C) $(AST_O) $(MAIN_O)
-	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -o $(TARGET) $(LEXER_C) $(PARSER_C) $(AST_O) $(MAIN_O)
+# Compila e linka lexer + parser + ast + tabela + main no executável final
+$(TARGET): $(LEXER_C) $(PARSER_C) $(AST_O) $(TABELA_O) $(MAIN_O)
+	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -o $(TARGET) $(LEXER_C) $(PARSER_C) $(AST_O) $(TABELA_O) $(MAIN_O)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
