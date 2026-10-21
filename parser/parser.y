@@ -1,15 +1,25 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include "tabela.h"
 
 extern int yylineno; /* Variável global gerenciada pelo Flex */
 int yylex(void);
 void yyerror(const char *s);
+int tipo_atual = -1; // Guarda o tipo (INT, FLOAT) durante uma declaração múltipla
 %}
+
+%union {
+    int int_val;
+    char* str_val;
+}
+
+%token <str_val> ID
 
 /* Habilita mensagens detalhadas: "syntax error, unexpected ID, expecting SEMI" */
 %define parse.error verbose
-%token ID NUM NUM_FLOAT CHAR_LITERAL STRING_LITERAL
+
+%token NUM NUM_FLOAT CHAR_LITERAL STRING_LITERAL
 
 %token PLUS MINUS TIMES DIVIDE MOD
 
@@ -53,11 +63,15 @@ lista_comandos:
     | comando
     ;
 
+bloco_inicio: LBRACE { entrar_escopo(); } ;
+bloco_fim: RBRACE { sair_escopo(); } ;
+
 comando:
       IF LPAREN expressao RPAREN comando %prec LOWER_THAN_ELSE
     | IF LPAREN expressao RPAREN comando ELSE comando
     | WHILE LPAREN expressao RPAREN comando
-    | LBRACE lista_comandos RBRACE
+    | bloco_inicio lista_comandos bloco_fim 
+    /*| LBRACE lista_comandos RBRACE*/
     | declaracao
     | RETURN expressao SEMI
     | expressao SEMI
@@ -74,15 +88,23 @@ lista_declaracoes:
     | lista_declaracoes COMMA declaracao_variavel
     ;
 
-declaracao_variavel:
-      ID
-    | ID ASSIGN expressao
+tipo:
+      INT   { tipo_atual = INT; $$ = INT; }
+    | FLOAT { tipo_atual = FLOAT; $$ = FLOAT; }
+    | CHAR  { tipo_atual = CHAR; $$ = CHAR; }
     ;
 
-tipo:
-      INT
-    | FLOAT
-    | CHAR
+declaracao_variavel:
+      ID {
+          if (!inserir_variavel($1, tipo_atual)) {
+              fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", yylineno, $1);
+          }
+      }
+    | ID ASSIGN expressao {
+          if (!inserir_variavel($1, tipo_atual)) {
+              fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", yylineno, $1);
+          }
+      }
     ;
 
 expressao:

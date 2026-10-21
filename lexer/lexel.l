@@ -20,7 +20,10 @@
 "char"                              { return CHAR; }
 "return"                            { return RETURN; }
 
-[a-zA-Z_][a-zA-Z0-9_]*              { return ID; }
+[a-zA-Z_][a-zA-Z0-9_]*      { 
+                                yylval.str_val = strdup(yytext); 
+                                return ID; 
+                            }
 
 [0-9]+\.[0-9]+                      { return NUM_FLOAT; }
 [0-9]+                              {
