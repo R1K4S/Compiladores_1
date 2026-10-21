@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern int yylineno; /* Variável global gerenciada pelo Flex */
 int yylex(void);
 void yyerror(const char *s);
 %}
 
+/* Habilita mensagens detalhadas: "syntax error, unexpected ID, expecting SEMI" */
+%define parse.error verbose
 %token ID NUM NUM_FLOAT CHAR_LITERAL STRING_LITERAL
 
 %token PLUS MINUS TIMES DIVIDE MOD
@@ -111,7 +114,7 @@ expressao:
     
 void yyerror(const char *s)
 {
-    fprintf(stderr, "Erro sintatico: %s\n", s);
+    fprintf(stderr, "Erro sintático na linha %d: %s\n", yylineno, s);
 }
 
 int main(void)

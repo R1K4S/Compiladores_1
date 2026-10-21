@@ -4,6 +4,8 @@
 #include <stdio.h>
 %}
 
+%option yylineno
+
 %%
 
 "//".*                              { /* Ignora comentario de uma linha */ }
