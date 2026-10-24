@@ -57,7 +57,7 @@ Simbolo* buscar_variavel(const char* nome) {
     Escopo* escopo_busca = escopo_atual;
     
     // usando uma busca de dentro para fora
-     (escopo_busca != NULL) {
+    while (escopo_busca != NULL) {
         Simbolo* atual = escopo_busca->tabela;
         while (atual != NULL) {
             if (strcmp(atual->nome, nome) == 0) return atual;
