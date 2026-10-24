@@ -95,9 +95,7 @@ comando:
     ;
 
 declaracao:
-      tipo ID SEMI                    { $$ = criar_no_declaracao($1, criar_no_id($2), NULL); }
-    | tipo ID ASSIGN expressao SEMI   { $$ = criar_no_declaracao($1, criar_no_id($2), $4); }
-    | tipo lista_declaracoes SEMI     { $$ = $2; }
+      tipo lista_declaracoes SEMI     { $$ = $2; }
     ;
 
 lista_declaracoes:
@@ -162,6 +160,8 @@ void yyerror(const char *s)
 
 int main(void)
 {
+    inicializar_tabela();
+
     if (yyparse() == 0)
     {
         printf("Analise sintatica concluida com sucesso!\n");
