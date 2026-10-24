@@ -144,7 +144,12 @@ expressao:
     | NOT expressao               { $$ = criar_no_op_unaria(NOT, $2); }
     | MINUS expressao %prec UMINUS { $$ = criar_no_op_unaria(MINUS, $2); }
     | LPAREN expressao RPAREN     { $$ = $2; }
-    | ID                          { $$ = criar_no_id($1); }
+    | ID {
+          if (!buscar_variavel($1)) {
+              fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, $1);
+          }
+          $$ = criar_no_id($1);
+      }
     | NUM                         { $$ = criar_no_literal_int($1); }
     | NUM_FLOAT                   { $$ = criar_no_literal_float($1); }
     | CHAR_LITERAL                { $$ = criar_no_literal_char((char)$1); }
