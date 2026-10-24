@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "ast.h"
+#include "parser.tab.h"   /* nomes dos tokens (PLUS, INT, ...) para imprimir */
 
 /* Função auxiliar privada para alocar e inicializar um nó vazio */
 static NoAST* alocar_no(TipoNo tipo) {
@@ -124,4 +125,52 @@ NoAST* ligar_nos(NoAST* atual, NoAST* proximo) {
     }
     temp->proximo = proximo;
     return atual;
+}
+
+/* ===================== Impressao da AST (issue #33) ===================== */
+
+/* Mesma ordem do enum TipoNo em ast.h */
+static const char* nomes_no[] = {
+    "Int", "Float", "Char", "String", "ID", "Op", "OpUnaria", "Atribuicao",
+    "Declaracao", "If", "While", "Bloco", "Return", "Funcao", "Programa"
+};
+
+static const char* nome_token(int t) {
+    switch (t) {
+        case PLUS: return "+";   case MINUS: return "-";  case TIMES: return "*";
+        case DIVIDE: return "/"; case MOD: return "%";    case EQ: return "==";
+        case NEQ: return "!=";   case LT: return "<";     case GT: return ">";
+        case LE: return "<=";    case GE: return ">=";    case AND: return "&&";
+        case OR: return "||";    case NOT: return "!";
+        case INT: return "int";  case FLOAT: return "float"; case CHAR: return "char";
+        default: return "?";
+    }
+}
+
+/* Imprime o no, seus filhos (esq, dir, centro) e depois os irmaos (proximo) */
+static void imprimir_no(const NoAST* no, int nivel) {
+    for (; no != NULL; no = no->proximo) {
+        printf("%*s%s", nivel * 2, "", nomes_no[no->tipo]);
+        switch (no->tipo) {
+            case NO_LITERAL_INT:    printf(" %d", no->dado.valor_int); break;
+            case NO_LITERAL_FLOAT:  printf(" %g", no->dado.valor_float); break;
+            case NO_LITERAL_CHAR:   printf(" '%c'", no->dado.valor_int); break;
+            case NO_LITERAL_STRING:
+            case NO_ID:
+            case NO_FUNCAO:         printf(" %s", no->dado.string_val); break;
+            case NO_OP_BINARIA:
+            case NO_OP_UNARIA:      printf(" %s", nome_token(no->dado.op)); break;
+            case NO_DECLARACAO:     printf(" %s", nome_token(no->dado.tipo_dado)); break;
+            default: break;
+        }
+        printf("\n");
+        imprimir_no(no->esq, nivel + 1);
+        imprimir_no(no->dir, nivel + 1);
+        imprimir_no(no->centro, nivel + 1);   /* else, quando existir */
+    }
+}
+
+void imprimir_ast(const NoAST* raiz) {
+    printf("Programa\n");
+    imprimir_no(raiz, 1);
 }

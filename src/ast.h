@@ -61,4 +61,7 @@ NoAST* criar_no_funcao(int tipo_retorno, const char* nome, NoAST* parametros, No
 
 NoAST* ligar_nos(NoAST* atual, NoAST* proximo);
 
+/* Imprime a AST indentada (issue #33) */
+void imprimir_ast(const NoAST* raiz);
+
 #endif

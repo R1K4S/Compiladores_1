@@ -165,6 +165,7 @@ int main(void)
     if (yyparse() == 0)
     {
         printf("Analise sintatica concluida com sucesso!\n");
+        imprimir_ast(raiz_ast);
     }
 
     return 0;
