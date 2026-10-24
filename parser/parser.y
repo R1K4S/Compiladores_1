@@ -5,6 +5,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ast.h"
 #include "tabela.h"
 
@@ -14,32 +15,9 @@ void yyerror(const char *s);
 NoAST* raiz_ast = NULL; // Raiz da AST do programa
 int tipo_atual = -1; // Guarda o tipo (INT, FLOAT) durante uma declaração múltipla
 
-/* Chamada logo após o ')' de uma definição de função: registra a função na tabela
-   (no escopo atual), abre o escopo da função e insere os parâmetros nele. */
-static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
-    int n = 0;
-    for (NoAST* p = params; p != NULL; p = p->proximo) n++;
-
-    int* tipos = NULL;
-    if (n > 0) {
-        tipos = (int*)malloc(n * sizeof(int));
-        int i = 0;
-        for (NoAST* p = params; p != NULL; p = p->proximo) tipos[i++] = p->dado.tipo_dado;
-    }
-
-    if (!inserir_funcao(nome, tipo_retorno, n, tipos)) {
-        fprintf(stderr, "Erro Semantico na linha %d: '%s' ja declarado neste escopo.\n", yylineno, nome);
-    }
-    free(tipos);
-
-    entrar_escopo();
-    for (NoAST* p = params; p != NULL; p = p->proximo) {
-        const char* nome_param = p->esq->dado.string_val;
-        if (!inserir_variavel(nome_param, p->dado.tipo_dado)) {
-            fprintf(stderr, "Erro Semantico na linha %d: Parametro '%s' duplicado na funcao '%s'.\n", yylineno, nome_param, nome);
-        }
-    }
-}
+/* Definidas no fim do arquivo (lá os tokens, como INT, já existem) */
+static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params);
+static void verificar_main(void);
 %}
 
 %union {
@@ -227,7 +205,47 @@ lista_argumentos:
     ;
 
 %%
-    
+
+/* Chamada logo após o ')' de uma definição de função: registra a função na tabela
+   (no escopo atual), abre o escopo da função e insere os parâmetros nele. */
+static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
+    int n = 0;
+    for (NoAST* p = params; p != NULL; p = p->proximo) n++;
+
+    int* tipos = NULL;
+    if (n > 0) {
+        tipos = (int*)malloc(n * sizeof(int));
+        int i = 0;
+        for (NoAST* p = params; p != NULL; p = p->proximo) tipos[i++] = p->dado.tipo_dado;
+    }
+
+    if (strcmp(nome, "main") == 0 && (tipo_retorno != INT || n != 0)) {
+        fprintf(stderr, "Erro Semantico na linha %d: 'main' deve ter a assinatura 'int main()'.\n", yylineno);
+    }
+
+    if (!inserir_funcao(nome, tipo_retorno, n, tipos)) {
+        fprintf(stderr, "Erro Semantico na linha %d: '%s' ja declarado neste escopo.\n", yylineno, nome);
+    }
+    free(tipos);
+
+    entrar_escopo();
+    for (NoAST* p = params; p != NULL; p = p->proximo) {
+        const char* nome_param = p->esq->dado.string_val;
+        if (!inserir_variavel(nome_param, p->dado.tipo_dado)) {
+            fprintf(stderr, "Erro Semantico na linha %d: Parametro '%s' duplicado na funcao '%s'.\n", yylineno, nome_param, nome);
+        }
+    }
+}
+
+/* Todo programa precisa ter uma função 'main'.
+   Chamada após o parse, quando o escopo global é o escopo atual. */
+static void verificar_main(void) {
+    Simbolo* m = buscar_variavel("main");
+    if (m == NULL || !m->eh_funcao) {
+        fprintf(stderr, "Erro Semantico: funcao 'main' nao encontrada. Todo programa precisa de 'int main()'.\n");
+    }
+}
+
 void yyerror(const char *s)
 {
     fprintf(stderr, "Erro sintático na linha %d: %s\n", yylineno, s);
@@ -241,6 +259,7 @@ int main(void)
     {
         printf("Analise sintatica concluida com sucesso!\n");
         imprimir_ast(raiz_ast);
+        verificar_main();
     }
 
     return 0;
