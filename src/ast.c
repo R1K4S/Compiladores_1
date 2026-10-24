@@ -16,6 +16,7 @@ static NoAST* alocar_no(TipoNo tipo) {
     no->dir = NULL;
     no->centro = NULL;
     no->proximo = NULL;
+    no->tipo_retorno = 0;
     return no;
 }
 
@@ -109,10 +110,17 @@ NoAST* criar_no_return(NoAST* expressao) {
 
 NoAST* criar_no_funcao(int tipo_retorno, const char* nome, NoAST* parametros, NoAST* bloco) {
     NoAST* no = alocar_no(NO_FUNCAO);
-    no->dado.tipo_dado = tipo_retorno;
+    no->tipo_retorno = tipo_retorno;   // fora da union, para não colidir com o nome
     no->dado.string_val = strdup(nome);
     no->esq = parametros;
     no->dir = bloco;
+    return no;
+}
+
+NoAST* criar_no_chamada(const char* nome, NoAST* argumentos) {
+    NoAST* no = alocar_no(NO_CHAMADA);
+    no->dado.string_val = strdup(nome);
+    no->esq = argumentos;   // argumentos encadeados por 'proximo'; pode ser NULL
     return no;
 }
 
@@ -132,7 +140,7 @@ NoAST* ligar_nos(NoAST* atual, NoAST* proximo) {
 /* Mesma ordem do enum TipoNo em ast.h */
 static const char* nomes_no[] = {
     "Int", "Float", "Char", "String", "ID", "Op", "OpUnaria", "Atribuicao",
-    "Declaracao", "If", "While", "Bloco", "Return", "Funcao", "Programa"
+    "Declaracao", "If", "While", "Bloco", "Return", "Funcao", "Programa", "Chamada"
 };
 
 static const char* nome_token(int t) {
@@ -157,7 +165,8 @@ static void imprimir_no(const NoAST* no, int nivel) {
             case NO_LITERAL_CHAR:   printf(" '%c'", no->dado.valor_int); break;
             case NO_LITERAL_STRING:
             case NO_ID:
-            case NO_FUNCAO:         printf(" %s", no->dado.string_val); break;
+            case NO_CHAMADA:        printf(" %s", no->dado.string_val); break;
+            case NO_FUNCAO:         printf(" %s %s", nome_token(no->tipo_retorno), no->dado.string_val); break;
             case NO_OP_BINARIA:
             case NO_OP_UNARIA:      printf(" %s", nome_token(no->dado.op)); break;
             case NO_DECLARACAO:     printf(" %s", nome_token(no->dado.tipo_dado)); break;

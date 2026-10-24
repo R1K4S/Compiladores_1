@@ -17,7 +17,8 @@ typedef enum {
     NO_BLOCO,
     NO_RETURN,
     NO_FUNCAO,      // Preparado para expansão futura
-    NO_PROGRAMA
+    NO_PROGRAMA,
+    NO_CHAMADA      // Chamada de função: dado.string_val = nome, esq = lista de argumentos
 } TipoNo;
 
 /* Estrutura genérica do Nó da AST */
@@ -29,6 +30,8 @@ typedef struct NoAST {
     struct NoAST* dir;      // Filho direito (ex: operando direito, bloco if)
     struct NoAST* centro;   // Filho central (ex: bloco else)
     struct NoAST* proximo;  // Encadeamento horizontal (ex: lista de comandos ou declarações)
+
+    int tipo_retorno;       // Só NO_FUNCAO: tipo de retorno (INT, FLOAT, CHAR)
 
     // Armazenamento de dados específicos baseado no tipo do nó
     union {
@@ -58,6 +61,7 @@ NoAST* criar_no_while(NoAST* condicao, NoAST* bloco);
 NoAST* criar_no_bloco(NoAST* lista_comandos);
 NoAST* criar_no_return(NoAST* expressao);
 NoAST* criar_no_funcao(int tipo_retorno, const char* nome, NoAST* parametros, NoAST* bloco);
+NoAST* criar_no_chamada(const char* nome, NoAST* argumentos);
 
 NoAST* ligar_nos(NoAST* atual, NoAST* proximo);
 

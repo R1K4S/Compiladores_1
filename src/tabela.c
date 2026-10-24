@@ -27,6 +27,7 @@ void sair_escopo() {
     while (atual != NULL) {
         Simbolo* proximo = atual->proximo;
         free(atual->nome);
+        free(atual->tipos_params);
         free(atual);
         atual = proximo;
     }
@@ -47,10 +48,27 @@ int inserir_variavel(const char* nome, int tipo_dado) {
     Simbolo* novo_simbolo = (Simbolo*)malloc(sizeof(Simbolo));
     novo_simbolo->nome = strdup(nome);
     novo_simbolo->tipo_dado = tipo_dado;
+    novo_simbolo->eh_funcao = 0;
+    novo_simbolo->num_params = 0;
+    novo_simbolo->tipos_params = NULL;
     novo_simbolo->proximo = escopo_atual->tabela;
     escopo_atual->tabela = novo_simbolo;
     
     return 1; // deu certo
+}
+
+/* Funções e variáveis dividem o mesmo espaço de nomes, como em C */
+int inserir_funcao(const char* nome, int tipo_retorno, int num_params, const int* tipos_params) {
+    if (!inserir_variavel(nome, tipo_retorno)) return 0;
+
+    Simbolo* s = escopo_atual->tabela;  // o símbolo recém-inserido fica na cabeça da lista
+    s->eh_funcao = 1;
+    s->num_params = num_params;
+    if (num_params > 0) {
+        s->tipos_params = (int*)malloc(num_params * sizeof(int));
+        memcpy(s->tipos_params, tipos_params, num_params * sizeof(int));
+    }
+    return 1;
 }
 
 Simbolo* buscar_variavel(const char* nome) {

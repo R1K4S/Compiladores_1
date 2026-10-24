@@ -13,6 +13,33 @@ int yylex(void);
 void yyerror(const char *s);
 NoAST* raiz_ast = NULL; // Raiz da AST do programa
 int tipo_atual = -1; // Guarda o tipo (INT, FLOAT) durante uma declaração múltipla
+
+/* Chamada logo após o ')' de uma definição de função: registra a função na tabela
+   (no escopo atual), abre o escopo da função e insere os parâmetros nele. */
+static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
+    int n = 0;
+    for (NoAST* p = params; p != NULL; p = p->proximo) n++;
+
+    int* tipos = NULL;
+    if (n > 0) {
+        tipos = (int*)malloc(n * sizeof(int));
+        int i = 0;
+        for (NoAST* p = params; p != NULL; p = p->proximo) tipos[i++] = p->dado.tipo_dado;
+    }
+
+    if (!inserir_funcao(nome, tipo_retorno, n, tipos)) {
+        fprintf(stderr, "Erro Semantico na linha %d: '%s' ja declarado neste escopo.\n", yylineno, nome);
+    }
+    free(tipos);
+
+    entrar_escopo();
+    for (NoAST* p = params; p != NULL; p = p->proximo) {
+        const char* nome_param = p->esq->dado.string_val;
+        if (!inserir_variavel(nome_param, p->dado.tipo_dado)) {
+            fprintf(stderr, "Erro Semantico na linha %d: Parametro '%s' duplicado na funcao '%s'.\n", yylineno, nome_param, nome);
+        }
+    }
+}
 %}
 
 %union {
@@ -50,6 +77,7 @@ int tipo_atual = -1; // Guarda o tipo (INT, FLOAT) durante uma declaração múl
 %token RETURN
 
 %type <no> programa lista_comandos comando declaracao lista_declaracoes declaracao_variavel expressao
+%type <no> lista_itens item definicao_funcao parametros_opt lista_parametros parametro argumentos_opt lista_argumentos
 %type <int_val> tipo
 
 %nonassoc LOWER_THAN_ELSE
@@ -68,7 +96,38 @@ int tipo_atual = -1; // Guarda o tipo (INT, FLOAT) durante uma declaração múl
 %%
 
 programa:
-      lista_comandos        { raiz_ast = $1; }
+      lista_itens           { raiz_ast = $1; }
+    ;
+
+/* No topo do programa: comandos e definições de função */
+lista_itens:
+      lista_itens item      { $$ = ligar_nos($1, $2); }
+    | item                  { $$ = $1; }
+    ;
+
+item:
+      comando               { $$ = $1; }
+    | definicao_funcao      { $$ = $1; }
+    ;
+
+definicao_funcao:
+      tipo ID LPAREN parametros_opt RPAREN { iniciar_funcao($1, $2, $4); }
+      LBRACE lista_comandos RBRACE
+        { sair_escopo(); $$ = criar_no_funcao($1, $2, $4, criar_no_bloco($8)); }
+    ;
+
+parametros_opt:
+      /* vazio */           { $$ = NULL; }
+    | lista_parametros      { $$ = $1; }
+    ;
+
+lista_parametros:
+      parametro                        { $$ = $1; }
+    | lista_parametros COMMA parametro { $$ = ligar_nos($1, $3); }
+    ;
+
+parametro:
+      tipo ID               { $$ = criar_no_declaracao($1, criar_no_id($2), NULL); }
     ;
 
 lista_comandos:
@@ -150,10 +209,21 @@ expressao:
           }
           $$ = criar_no_id($1);
       }
+    | ID LPAREN argumentos_opt RPAREN { $$ = criar_no_chamada($1, $3); }
     | NUM                         { $$ = criar_no_literal_int($1); }
     | NUM_FLOAT                   { $$ = criar_no_literal_float($1); }
     | CHAR_LITERAL                { $$ = criar_no_literal_char((char)$1); }
     | STRING_LITERAL              { $$ = criar_no_literal_string($1); }
+    ;
+
+argumentos_opt:
+      /* vazio */           { $$ = NULL; }
+    | lista_argumentos      { $$ = $1; }
+    ;
+
+lista_argumentos:
+      expressao                        { $$ = $1; }
+    | lista_argumentos COMMA expressao { $$ = ligar_nos($1, $3); }
     ;
 
 %%
