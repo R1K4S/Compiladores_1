@@ -68,4 +68,15 @@ NoAST* ligar_nos(NoAST* atual, NoAST* proximo);
 /* Imprime a AST indentada (issue #33) */
 void imprimir_ast(const NoAST* raiz);
 
+/* Nome legivel de um token de tipo/operador (ex: INT -> "int"), usado em mensagens de erro */
+const char* nome_token(int t);
+
+/* Infere o tipo (INT, FLOAT ou CHAR) resultante de uma expressao.
+   Retorna -1 se nao for possivel determinar (ex: string, ou simbolo nao encontrado). */
+int tipo_da_expressao(const NoAST* no);
+
+/* Verifica se um valor do tipo 'obtido' pode ser usado onde se espera 'esperado',
+   permitindo promocoes implicitas seguras (int/char -> float, char -> int). */
+int tipos_compativeis(int esperado, int obtido);
+
 #endif

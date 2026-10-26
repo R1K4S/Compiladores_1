@@ -14,6 +14,7 @@ int yylex(void);
 void yyerror(const char *s);
 NoAST* raiz_ast = NULL; // Raiz da AST do programa
 int tipo_atual = -1; // Guarda o tipo (INT, FLOAT) durante uma declaração múltipla
+int tipo_retorno_atual = -1; // Tipo de retorno da funcao sendo parseada no momento (-1 = fora de funcao)
 
 /* Definidas no fim do arquivo (lá os tokens, como INT, já existem) */
 static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params);
@@ -127,7 +128,17 @@ comando:
                                 { $$ = criar_no_bloco($2); }
     /*| LBRACE lista_comandos RBRACE*/
     | declaracao                { $$ = $1; }
-    | RETURN expressao SEMI     { $$ = criar_no_return($2); }
+    | RETURN expressao SEMI {
+          int t = tipo_da_expressao($2);
+          if (tipo_retorno_atual == -1) {
+              fprintf(stderr, "Erro Semantico na linha %d: 'return' fora de uma funcao.\n", yylineno);
+          } else if (!tipos_compativeis(tipo_retorno_atual, t)) {
+              fprintf(stderr,
+                  "Erro Semantico na linha %d: tipo de retorno incompativel (esperado '%s').\n",
+                  yylineno, nome_token(tipo_retorno_atual));
+          }
+          $$ = criar_no_return($2);
+      }
     | expressao SEMI            { $$ = $1; }
     ;
 
@@ -209,6 +220,8 @@ lista_argumentos:
 /* Chamada logo após o ')' de uma definição de função: registra a função na tabela
    (no escopo atual), abre o escopo da função e insere os parâmetros nele. */
 static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
+    tipo_retorno_atual = tipo_retorno;
+
     int n = 0;
     for (NoAST* p = params; p != NULL; p = p->proximo) n++;
 

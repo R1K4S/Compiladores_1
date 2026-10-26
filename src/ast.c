@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "ast.h"
+#include "tabela.h"
 #include "parser.tab.h"   /* nomes dos tokens (PLUS, INT, ...) para imprimir */
 
 /* Função auxiliar privada para alocar e inicializar um nó vazio */
@@ -143,7 +144,7 @@ static const char* nomes_no[] = {
     "Declaracao", "If", "While", "Bloco", "Return", "Funcao", "Programa", "Chamada"
 };
 
-static const char* nome_token(int t) {
+const char* nome_token(int t) {
     switch (t) {
         case PLUS: return "+";   case MINUS: return "-";  case TIMES: return "*";
         case DIVIDE: return "/"; case MOD: return "%";    case EQ: return "==";
@@ -182,4 +183,54 @@ static void imprimir_no(const NoAST* no, int nivel) {
 void imprimir_ast(const NoAST* raiz) {
     printf("Programa\n");
     imprimir_no(raiz, 1);
+}
+
+/* ===================== Inferencia de tipos ===================== */
+
+int tipo_da_expressao(const NoAST* no) {
+    if (!no) return -1;
+
+    switch (no->tipo) {
+        case NO_LITERAL_INT:    return INT;
+        case NO_LITERAL_FLOAT:  return FLOAT;
+        case NO_LITERAL_CHAR:   return CHAR;
+        case NO_LITERAL_STRING: return -1; /* nao ha tipo 'string' declaravel na linguagem */
+
+        case NO_ID:
+        case NO_CHAMADA: {
+            Simbolo* s = buscar_variavel(no->dado.string_val);
+            return s ? s->tipo_dado : -1;
+        }
+
+        case NO_ATRIBUICAO:
+            return tipo_da_expressao(no->dir);
+
+        case NO_OP_UNARIA:
+            if (no->dado.op == NOT) return INT; /* resultado logico */
+            return tipo_da_expressao(no->esq);  /* MINUS preserva o tipo do operando */
+
+        case NO_OP_BINARIA: {
+            int op = no->dado.op;
+            /* operadores relacionais/logicos sempre resultam em int (0 ou 1) */
+            if (op == EQ || op == NEQ || op == LT || op == GT || op == LE || op == GE
+                || op == AND || op == OR) {
+                return INT;
+            }
+            /* aritmeticos: promove para float se qualquer lado for float */
+            int te = tipo_da_expressao(no->esq);
+            int td = tipo_da_expressao(no->dir);
+            if (te == FLOAT || td == FLOAT) return FLOAT;
+            return INT;
+        }
+
+        default:
+            return -1;
+    }
+}
+
+int tipos_compativeis(int esperado, int obtido) {
+    if (esperado == obtido) return 1;
+    if (esperado == FLOAT && (obtido == INT || obtido == CHAR)) return 1;
+    if (esperado == INT && obtido == CHAR) return 1;
+    return 0;
 }
