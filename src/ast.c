@@ -194,7 +194,7 @@ int tipo_da_expressao(const NoAST* no) {
         case NO_LITERAL_INT:    return INT;
         case NO_LITERAL_FLOAT:  return FLOAT;
         case NO_LITERAL_CHAR:   return CHAR;
-        case NO_LITERAL_STRING: return -1; /* nao ha tipo 'string' declaravel na linguagem */
+        case NO_LITERAL_STRING: return TIPO_STRING;
 
         case NO_ID:
         case NO_CHAMADA: {

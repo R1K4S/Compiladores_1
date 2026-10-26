@@ -1,5 +1,9 @@
 #ifndef AST_H
 #define AST_H
+#define TIPO_STRING -2 /* Tipo-sentinela: usado por tipo_da_expressao para indicar "string literal",
+distinto de -1 (simbolo nao encontrado / tipo indeterminado por erro ja reportado) */
+
+
 
 /* Enumeração de todos os tipos de nós que compõem o nosso Mini-C */
 typedef enum {
@@ -71,8 +75,8 @@ void imprimir_ast(const NoAST* raiz);
 /* Nome legivel de um token de tipo/operador (ex: INT -> "int"), usado em mensagens de erro */
 const char* nome_token(int t);
 
-/* Infere o tipo (INT, FLOAT ou CHAR) resultante de uma expressao.
-   Retorna -1 se nao for possivel determinar (ex: string, ou simbolo nao encontrado). */
+/* Infere o tipo (INT, FLOAT, CHAR ou TIPO_STRING) resultante de uma expressao.
+   Retorna -1 se nao for possivel determinar (ex: simbolo nao encontrado). */
 int tipo_da_expressao(const NoAST* no);
 
 /* Verifica se um valor do tipo 'obtido' pode ser usado onde se espera 'esperado',
