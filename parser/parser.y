@@ -134,7 +134,7 @@ comando:
           int t = tipo_da_expressao($2);
           if (tipo_retorno_atual == -1) {
               fprintf(stderr, "Erro Semantico na linha %d: 'return' fora de uma funcao.\n", yylineno);
-          } else if (t != -1 && !tipos_compativeis(tipo_retorno_atual, t))
+          } else if (t != -1 && !tipos_compativeis(tipo_retorno_atual, t)){
               fprintf(stderr,
                   "Erro Semantico na linha %d: tipo de retorno incompativel (esperado '%s').\n",
                   yylineno, nome_token(tipo_retorno_atual));
