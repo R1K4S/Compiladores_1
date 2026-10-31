@@ -378,15 +378,15 @@ Não é possível declarar uma variável do tipo string, nem armazenar uma strin
 
 O interpretador deve detectar e rejeitar, antes da execução, qualquer programa que viole as regras abaixo. Este catálogo serve diretamente de referência para os testes/validações manuais do analisador semântico.
 
-| # | Regra violada | Exemplo | Resultado esperado |
-|---|---|---|---|
-| 1 | Uso de variável não declarada | `x = 10;` (sem declarar `x` antes) | Erro semântico |
-| 2 | Redeclaração no mesmo escopo | `int x; int x;` | Erro semântico |
-| 3 | Uso de variável fora do escopo em que foi declarada | Ver exemplo da Seção 3.2 (`y` usado após o `if`) | Erro semântico |
-| 4 | Número incorreto de argumentos em chamada de função | `soma(int a,int b){...}` chamada como `soma(10);` | Erro semântico |
-| 5 | Tipo incompatível em atribuição/inicialização | `char c = 10.5;` | Erro semântico |
-| 6 | Ausência da função `int main()` | Programa sem `main` | Erro semântico |
-| 7 | `return` ausente em função com tipo de retorno, ou com tipo incompatível | Função `int` que não executa `return`, ou que retorna um `float` incompatível | Erro semântico |
+| # | Regra violada | Exemplo | Resultado esperado | Status |
+|---|---|---|---|---|
+| 1 | Uso de variável não declarada | `x = 10;` (sem declarar `x` antes) | Erro semântico | ✅ Implementado |
+| 2 | Redeclaração no mesmo escopo | `int x; int x;` | Erro semântico | ✅ Implementado |
+| 3 | Uso de variável fora do escopo em que foi declarada | Ver exemplo da Seção 3.2 (`y` usado após o `if`) | Erro semântico | ✅ Implementado (via pilha de escopos) |
+| 4 | Número incorreto de argumentos em chamada de função | `soma(int a,int b){...}` chamada como `soma(10);` | Erro semântico | ✅ Implementado |
+| 5 | Tipo incompatível em atribuição/inicialização | `char c = 10.5;` | Erro semântico | ✅ Implementado |
+| 6 | Ausência da função `int main()` | Programa sem `main` | Erro semântico | ✅ Implementado |
+| 7 | `return` ausente em função com tipo de retorno, ou com tipo incompatível | Função `int` que não executa `return`, ou que retorna um `float` incompatível | Erro semântico | ⚠️ Parcial: tipo incompatível é verificado; ausência de `return` em algum caminho ainda não |
 
 ## 12. Recursos Fora de Escopo (V1)
 

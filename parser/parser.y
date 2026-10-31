@@ -21,6 +21,7 @@ static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params);
 static void verificar_main(void);
 static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir);
 static NoAST* criar_unaria_verificada(int op, NoAST* operando);
+static NoAST* validar_chamada(const char* nome, NoAST* argumentos);
 %}
 
 %union {
@@ -215,7 +216,7 @@ expressao:
           }
           $$ = criar_no_id($1);
       }
-    | ID LPAREN argumentos_opt RPAREN { $$ = criar_no_chamada($1, $3); }
+    | ID LPAREN argumentos_opt RPAREN { $$ = validar_chamada($1, $3); }
     | NUM                         { $$ = criar_no_literal_int($1); }
     | NUM_FLOAT                   { $$ = criar_no_literal_float($1); }
     | CHAR_LITERAL                { $$ = criar_no_literal_char((char)$1); }
@@ -285,6 +286,44 @@ static NoAST* criar_unaria_verificada(int op, NoAST* operando) {
                 yylineno, nome_token(op));
     }
     return criar_no_op_unaria(op, operando);
+}
+
+/* Verifica existencia da funcao, aridade e tipos dos argumentos antes de construir o no de chamada */
+static NoAST* validar_chamada(const char* nome, NoAST* argumentos) {
+    Simbolo* s = buscar_variavel(nome);
+
+    if (s == NULL) {
+        fprintf(stderr, "Erro Semantico na linha %d: funcao '%s' nao declarada.\n", yylineno, nome);
+        return criar_no_chamada(nome, argumentos);
+    }
+
+    if (!s->eh_funcao) {
+        fprintf(stderr, "Erro Semantico na linha %d: '%s' nao e uma funcao.\n", yylineno, nome);
+        return criar_no_chamada(nome, argumentos);
+    }
+
+    int n_args = 0;
+    for (NoAST* a = argumentos; a != NULL; a = a->proximo) n_args++;
+
+    if (n_args != s->num_params) {
+        fprintf(stderr,
+            "Erro Semantico na linha %d: funcao '%s' espera %d argumento(s), recebeu %d.\n",
+            yylineno, nome, s->num_params, n_args);
+        return criar_no_chamada(nome, argumentos);
+    }
+
+    int i = 0;
+    for (NoAST* a = argumentos; a != NULL; a = a->proximo, i++) {
+        int t_arg = tipo_da_expressao(a);
+        int t_param = s->tipos_params[i];
+        if (t_arg != -1 && !tipos_compativeis(t_param, t_arg)) {
+            fprintf(stderr,
+                "Erro Semantico na linha %d: argumento %d de '%s' incompativel (esperado '%s').\n",
+                yylineno, i + 1, nome, nome_token(t_param));
+        }
+    }
+
+    return criar_no_chamada(nome, argumentos);
 }
 
 /* Todo programa precisa ter uma função 'main'.

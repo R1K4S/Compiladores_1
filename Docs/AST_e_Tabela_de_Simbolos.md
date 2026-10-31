@@ -40,10 +40,11 @@ Todo nó é um `NoAST`, com um tipo, quatro ponteiros e um campo de dado:
 | `NO_WHILE` | `while` | | condição | corpo | |
 | `NO_BLOCO` | `{ ... }` | | primeiro comando da lista | | |
 | `NO_RETURN` | `return expr;` | | expressão | | |
-| `NO_FUNCAO` | Função | `tipo_dado` e `string_val` | parâmetros | corpo | |
-| `NO_PROGRAMA` | Reservado | | | | |
+| `NO_FUNCAO` | Definição de função | `string_val` (nome) + `tipo_retorno` (campo proprio, fora da union) | parâmetros | corpo (`NO_BLOCO`) | |
+| `NO_CHAMADA` | Chamada de função (`f(1, 2)`) | `string_val` (nome) | lista de argumentos (`NO_ID`/expressões ligados por `proximo`) | | |
+| `NO_PROGRAMA` | Reservado, não utilizado atualmente | | | | |
 
-`NO_FUNCAO` e `NO_PROGRAMA` ainda não são gerados pelo parser, pois a gramática atual não aceita funções.
+`NO_FUNCAO` é gerado por `definicao_funcao` no parser, e usa o campo `tipo_retorno` (fora da `union dado`) justamente para não colidir com `string_val` do nome da função — os dois são usados ao mesmo tempo. `NO_CHAMADA` é gerado sempre que uma chamada de função aparece numa expressão, após passar pela validação semântica de `validar_chamada` (ver Seção 2.5).
 
 ### 1.3 Encadeamento com `proximo`
 
@@ -74,6 +75,7 @@ A raiz da árvore (`raiz_ast`, definida em `parser.y`) é o **primeiro comando d
 | `criar_no_bloco(lista_comandos)` | `NO_BLOCO` |
 | `criar_no_return(expressao)` | `NO_RETURN` |
 | `criar_no_funcao(tipo, nome, parametros, bloco)` | `NO_FUNCAO` |
+| `criar_no_chamada(nome, argumentos)` | `NO_CHAMADA` |
 | `ligar_nos(atual, proximo)` | Encadeia dois nós ou duas cadeias |
 
 Todas alocam o nó com `malloc` e começam com os quatro ponteiros em `NULL`. A AST ainda não é liberada ao final do programa.
@@ -119,7 +121,10 @@ Programa
 ```c
 typedef struct Simbolo {
     char* nome;
-    int tipo_dado;           /* INT, FLOAT ou CHAR (tokens do Bison) */
+    int tipo_dado;           /* variável: seu tipo | função: tipo de retorno (INT, FLOAT ou CHAR) */
+    int eh_funcao;           /* 1 se for função, 0 se for variável */
+    int num_params;          /* só para função: quantidade de parâmetros */
+    int* tipos_params;       /* só para função: tipo de cada parâmetro (NULL se não houver) */
     struct Simbolo* proximo; /* próximo símbolo do mesmo escopo */
 } Simbolo;
 
@@ -164,21 +169,38 @@ Erro Semantico na linha N: Variavel 'x' ja declarada neste escopo.
 
 O parser **continua** depois desse erro, e a análise ainda termina com `Analise sintatica concluida com sucesso!`, já que o erro é semântico e não sintático.
 
+### 2.5 Análise semântica
+
+Além da tabela de símbolos e dos escopos, o parser faz três verificações semânticas, todas implementadas em `parser.y` reaproveitando duas funções auxiliares de `ast.c`:
+
+- **`tipo_da_expressao(no)`**: infere o tipo (`INT`, `FLOAT`, `CHAR` ou `TIPO_STRING`) resultante de uma expressão, percorrendo a AST recursivamente. Retorna `-1` quando o tipo não pode ser determinado (ex: identificador não declarado — nesse caso o próprio erro de "não declarada" já foi reportado em outro ponto, então o chamador deve ignorar o `-1` sem gerar um segundo erro).
+- **`tipos_compativeis(esperado, obtido)`**: decide se um valor do tipo `obtido` pode ser usado onde se espera `esperado`, seguindo a Seção 6.1 da Especificação: `int` e `float` convertem implicitamente entre si (nos dois sentidos — `float → int` trunca), e `char` nunca converte implicitamente com `int`/`float`.
+
+As três verificações:
+
+1. **Tipo de retorno (`comando: RETURN expressao SEMI`)**: compara o tipo da expressão com `tipo_retorno_atual`, uma variável global atualizada em `iniciar_funcao` toda vez que o parser entra numa nova definição de função. Também detecta `return` fora de qualquer função.
+2. **Atribuição e inicialização**: tanto `expressao: expressao ASSIGN expressao` quanto `declaracao_variavel: ID ASSIGN expressao` comparam o tipo do valor atribuído com o tipo do alvo.
+3. **Chamada de função (`validar_chamada`)**: antes de construir o nó `NO_CHAMADA`, verifica, nesta ordem: (a) se a função existe na tabela de símbolos; (b) se o símbolo encontrado é de fato uma função (`eh_funcao`) e não uma variável; (c) se o número de argumentos bate com `num_params`; (d) se cada argumento é compatível com o tipo do parâmetro correspondente. Qualquer erro é reportado em `stderr`, mas o nó da chamada é construído normalmente mesmo assim, para o parser continuar com segurança.
+
+Operadores binários e unários também passam por uma checagem mais simples: `criar_binaria_verificada`/`criar_unaria_verificada` rejeitam qualquer operando do tipo `TIPO_STRING` (string literal), já que strings só podem ser usadas como argumento direto de uma chamada (ex: `printf`), nunca dentro de uma expressão aritmética/lógica.
+
 ---
 
 ## 3. Limitações atuais
 
-- `buscar_variavel` existe, mas o parser ainda não a chama. **O uso de variável não declarada não é detectado.**
-- Erros semânticos não alteram o retorno do `yyparse`, então o programa não indica falha por causa deles.
-- Não há funções na gramática. Em `criar_no_funcao`, `tipo_dado` e `string_val` pertencem à mesma `union` e se sobrescrevem; isso precisa ser corrigido (por exemplo, guardando o tipo em outro campo) quando funções forem implementadas.
 - A AST e o escopo global não são liberados ao final da execução.
+- `return` dentro de uma função não é obrigatório: uma função `int` pode nunca executar `return` e o parser não acusa erro (a Especificação, Seção 11 item 7, pede essa verificação; ainda não implementada).
+- A verificação de tipos opera sobre o tipo *declarado* das variáveis e literais; não há execução real, então nenhum valor é de fato calculado ou convertido em tempo de análise.
+- Não há `void`: toda função precisa declarar um tipo de retorno `int`, `float` ou `char`.
 
 ## 4. Como testar
 
 ```bash
 make clean && make
-printf 'int x = 2 + 3 * 4;\nif (x > 5) { x = 1; } else x = 0;\n' | ./build/compilador   # imprime a árvore
-printf 'int x;\nint x;\n' | ./build/compilador                                            # erro semântico (redeclaração)
-printf 'int x;\n{ int x; }\n' | ./build/compilador                                        # válido (sombreamento)
-printf 'int x = 1\nint y;\n' | ./build/compilador                                         # erro sintático, sem árvore
+printf 'int main() { int x = 2 + 3 * 4; if (x > 5) { x = 1; } else x = 0; return 0; }\n' | ./build/compilador   # imprime a árvore
+printf 'int main() { int x; int x; return 0; }\n' | ./build/compilador                                          # erro semântico (redeclaração)
+printf 'int main() { int x; { int x; } return 0; }\n' | ./build/compilador                                      # válido (sombreamento)
+printf 'int f() { return 3.14; } int main() { return 0; }\n' | ./build/compilador                                 # ok, float->int trunca (Secao 6.1)
+printf "int f() { return 'a'; } int main() { return 0; }\n" | ./build/compilador                                  # erro semantico (char->int nao permitido)
+printf 'int soma(int a, int b) { return a + b; } int main() { int x = soma(1); return 0; }\n' | ./build/compilador # erro semantico (aridade)
 ```

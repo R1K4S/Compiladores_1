@@ -230,7 +230,6 @@ int tipo_da_expressao(const NoAST* no) {
 
 int tipos_compativeis(int esperado, int obtido) {
     if (esperado == obtido) return 1;
-    if (esperado == FLOAT && (obtido == INT || obtido == CHAR)) return 1;
-    if (esperado == INT && obtido == CHAR) return 1;
+    if ((esperado == INT && obtido == FLOAT) || (esperado == FLOAT && obtido == INT)) return 1;
     return 0;
 }
