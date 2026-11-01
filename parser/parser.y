@@ -8,6 +8,7 @@
 #include <string.h>
 #include "ast.h"
 #include "tabela.h"
+#include "interpretador.h"
 
 extern int yylineno; /* Variável global gerenciada pelo Flex */
 int yylex(void);
@@ -95,7 +96,7 @@ item:
 definicao_funcao:
       tipo ID LPAREN parametros_opt RPAREN { iniciar_funcao($1, $2, $4); }
       LBRACE lista_comandos RBRACE
-        { sair_escopo(); $$ = criar_no_funcao($1, $2, $4, criar_no_bloco($8)); }
+        { sair_escopo(); tipo_retorno_atual = -1; $$ = criar_no_funcao($1, $2, $4, criar_no_bloco($8)); }
     ;
 
 parametros_opt:
@@ -349,6 +350,7 @@ int main(void)
         printf("Analise sintatica concluida com sucesso!\n");
         imprimir_ast(raiz_ast);
         verificar_main();
+        executar_programa(raiz_ast);
     }
 
     return 0;
