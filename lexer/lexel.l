@@ -14,6 +14,8 @@
 "if"                                { return IF; }
 "else"                              { return ELSE; }
 "while"                             { return WHILE; }
+"for"                               { return FOR; }
+"printf"                            { return PRINTF; }
 
 "int"                               { return INT; }
 "float"                             { return FLOAT; }
@@ -31,7 +33,10 @@
                                         return NUM;
                                     }
 '([^'\\\n]|\\.)'                    { yylval = yytext[1]; return CHAR_LITERAL; }
-\"([^\"\\\n]|\\.)*\"                { return STRING_LITERAL; }
+\"([^\"\\\n]|\\.)*\"                { 
+                                        yylval.str_val = strdup(yytext); 
+                                        return STRING_LITERAL; 
+                                    }
 
 "=="                                { return EQ; }
 "!="                                { return NEQ; }

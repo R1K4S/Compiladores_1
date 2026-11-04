@@ -35,6 +35,8 @@ int tipo_atual = -1; // Guarda o tipo (INT, FLOAT) durante uma declaração múl
 
 %token IF ELSE WHILE
 
+%token FOR PRINTF
+
 %token INT FLOAT CHAR
 
 %token RETURN
@@ -70,6 +72,10 @@ comando:
       IF LPAREN expressao RPAREN comando %prec LOWER_THAN_ELSE
     | IF LPAREN expressao RPAREN comando ELSE comando
     | WHILE LPAREN expressao RPAREN comando
+    | FOR LPAREN expressao SEMI expressao SEMI expressao RPAREN comando
+    | PRINTF LPAREN STRING_LITERAL RPAREN SEMI
+    | PRINTF LPAREN STRING_LITERAL COMMA lista_expressoes RPAREN SEMI
+
     | bloco_inicio lista_comandos bloco_fim 
     /*| LBRACE lista_comandos RBRACE*/
     | declaracao
@@ -77,6 +83,11 @@ comando:
     | expressao SEMI
     ;
 
+lista_expressoes:
+      expressao
+    | lista_expressoes COMMA expressao
+    ;
+    
 declaracao:
       tipo ID SEMI
     | tipo ID ASSIGN expressao SEMI
