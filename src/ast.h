@@ -1,5 +1,9 @@
 #ifndef AST_H
 #define AST_H
+#define TIPO_STRING -2 /* Tipo-sentinela: usado por tipo_da_expressao para indicar "string literal",
+distinto de -1 (simbolo nao encontrado / tipo indeterminado por erro ja reportado) */
+
+
 
 /* Enumeração de todos os tipos de nós que compõem o nosso Mini-C */
 typedef enum {
@@ -19,7 +23,8 @@ typedef enum {
     NO_BLOCO,
     NO_RETURN,
     NO_FUNCAO,      // Preparado para expansão futura
-    NO_PROGRAMA
+    NO_PROGRAMA,
+    NO_CHAMADA      // Chamada de função: dado.string_val = nome, esq = lista de argumentos
 } TipoNo;
 
 /* Estrutura genérica do Nó da AST */
@@ -32,6 +37,8 @@ typedef struct NoAST {
     struct NoAST* centro;
     struct NoAST* extra;
     struct NoAST* proximo;  // Encadeamento horizontal (ex: lista de comandos ou declarações)
+
+    int tipo_retorno;       // Só NO_FUNCAO: tipo de retorno (INT, FLOAT, CHAR)
 
     // Armazenamento de dados específicos baseado no tipo do nó
     union {
@@ -63,7 +70,22 @@ NoAST* criar_no_printf(const char* formato, NoAST* argumentos);
 NoAST* criar_no_bloco(NoAST* lista_comandos);
 NoAST* criar_no_return(NoAST* expressao);
 NoAST* criar_no_funcao(int tipo_retorno, const char* nome, NoAST* parametros, NoAST* bloco);
+NoAST* criar_no_chamada(const char* nome, NoAST* argumentos);
 
 NoAST* ligar_nos(NoAST* atual, NoAST* proximo);
+
+/* Imprime a AST indentada (issue #33) */
+void imprimir_ast(const NoAST* raiz);
+
+/* Nome legivel de um token de tipo/operador (ex: INT -> "int"), usado em mensagens de erro */
+const char* nome_token(int t);
+
+/* Infere o tipo (INT, FLOAT, CHAR ou TIPO_STRING) resultante de uma expressao.
+   Retorna -1 se nao for possivel determinar (ex: simbolo nao encontrado). */
+int tipo_da_expressao(const NoAST* no);
+
+/* Verifica se um valor do tipo 'obtido' pode ser usado onde se espera 'esperado',
+   permitindo promocoes implicitas seguras (int/char -> float, char -> int). */
+int tipos_compativeis(int esperado, int obtido);
 
 #endif
