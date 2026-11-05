@@ -55,6 +55,8 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos);
 
 %token IF ELSE WHILE
 
+%token FOR PRINTF
+
 %token INT FLOAT CHAR
 
 %token RETURN
@@ -146,6 +148,11 @@ comando:
     | expressao SEMI            { $$ = $1; }
     ;
 
+lista_expressoes:
+      expressao
+    | lista_expressoes COMMA expressao
+    ;
+    
 declaracao:
       tipo lista_declaracoes SEMI     { $$ = $2; }
     ;

@@ -97,6 +97,22 @@ NoAST* criar_no_while(NoAST* condicao, NoAST* bloco) {
     return no;
 }
 
+NoAST* criar_no_for(NoAST* init, NoAST* cond, NoAST* inc, NoAST* corpo) {
+    NoAST* no = alocar_no(NO_FOR);
+    no->esq = init;       // Inicialização (ex: i = 0)
+    no->centro = cond;    // Condição (ex: i < 10)
+    no->dir = inc;        // Incremento (ex: i = i + 1)
+    no->extra = corpo;    // Bloco de comandos
+    return no;
+}
+
+NoAST* criar_no_printf(const char* formato, NoAST* argumentos) {
+    NoAST* no = alocar_no(NO_PRINTF);
+    no->dado.string_val = strdup(formato);
+    no->esq = argumentos; // Lista de expressões separadas por vírgula
+    return no;
+}
+
 NoAST* criar_no_bloco(NoAST* lista_comandos) {
     NoAST* no = alocar_no(NO_BLOCO);
     no->esq = lista_comandos;

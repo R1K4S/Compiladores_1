@@ -15,6 +15,8 @@
 "if"                                { return IF; }
 "else"                              { return ELSE; }
 "while"                             { return WHILE; }
+"for"                               { return FOR; }
+"printf"                            { return PRINTF; }
 
 "int"                               { return INT; }
 "float"                             { return FLOAT; }

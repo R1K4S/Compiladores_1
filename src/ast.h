@@ -18,6 +18,8 @@ typedef enum {
     NO_DECLARACAO,
     NO_IF,
     NO_WHILE,
+    NO_FOR,
+    NO_PRINTF,
     NO_BLOCO,
     NO_RETURN,
     NO_FUNCAO,      // Preparado para expansão futura
@@ -32,7 +34,8 @@ typedef struct NoAST {
     // Ponteiros para estruturação da árvore e sub-blocos
     struct NoAST* esq;      // Filho esquerdo (ex: operando esquerdo, condição)
     struct NoAST* dir;      // Filho direito (ex: operando direito, bloco if)
-    struct NoAST* centro;   // Filho central (ex: bloco else)
+    struct NoAST* centro;
+    struct NoAST* extra;
     struct NoAST* proximo;  // Encadeamento horizontal (ex: lista de comandos ou declarações)
 
     int tipo_retorno;       // Só NO_FUNCAO: tipo de retorno (INT, FLOAT, CHAR)
@@ -62,6 +65,8 @@ NoAST* criar_no_atribuicao(NoAST* id, NoAST* expressao);
 NoAST* criar_no_declaracao(int tipo_dado, NoAST* id, NoAST* expressao);
 NoAST* criar_no_if(NoAST* condicao, NoAST* bloco_if, NoAST* bloco_else);
 NoAST* criar_no_while(NoAST* condicao, NoAST* bloco);
+NoAST* criar_no_for(NoAST* init, NoAST* cond, NoAST* inc, NoAST* corpo);
+NoAST* criar_no_printf(const char* formato, NoAST* argumentos);
 NoAST* criar_no_bloco(NoAST* lista_comandos);
 NoAST* criar_no_return(NoAST* expressao);
 NoAST* criar_no_funcao(int tipo_retorno, const char* nome, NoAST* parametros, NoAST* bloco);
