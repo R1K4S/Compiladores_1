@@ -144,6 +144,7 @@ static void interpretar_lista(const NoAST* no) {
 }
 
 void interpretar_comando(const NoAST* no) {
+    if (no == NULL) return;   /* comando vazio, ex: "if (x) ;" */
     switch (no->tipo) {
         case NO_DECLARACAO: {
             /* Sem inicializador, a variável começa com 0 */
@@ -160,7 +161,19 @@ void interpretar_comando(const NoAST* no) {
         case NO_FUNCAO:
             break;   /* definir uma função não executa nada; chamadas ficam para depois */
         case NO_IF:
+            /* esq = condicao, dir = comando do if, centro = comando do else (ou NULL) */
+            if (valor_verdadeiro(avaliar_expressao(no->esq))) {
+                interpretar_comando(no->dir);
+            } else if (no->centro != NULL) {
+                interpretar_comando(no->centro);
+            }
+            break;
         case NO_WHILE:
+            /* esq = condicao, dir = corpo; a condicao e reavaliada a cada volta */
+            while (valor_verdadeiro(avaliar_expressao(no->esq))) {
+                interpretar_comando(no->dir);
+            }
+            break;
         case NO_RETURN:
             erro_execucao("este comando ainda nao e suportado pelo interpretador.");
         default:
