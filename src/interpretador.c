@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
 #include "interpretador.h"
 #include "parser.tab.h"   /* tokens dos operadores (PLUS, ...) e dos tipos (INT, ...) */
@@ -160,6 +161,32 @@ void interpretar_comando(const NoAST* no) {
             break;
         case NO_FUNCAO:
             break;   /* definir uma função não executa nada; chamadas ficam para depois */
+        case NO_SCANF: {
+            const char* formato = no->dado.string_val;
+            const char* nome_var = no->esq->dado.string_val;
+            Valor lido;
+
+            if (strcmp(formato, "%d") == 0) {
+                int tmp;
+                if (scanf("%d", &tmp) != 1) erro_execucao("falha ao ler um inteiro para '%s'.", nome_var);
+                lido = valor_int(tmp);
+            } else if (strcmp(formato, "%f") == 0) {
+                float tmp;
+                if (scanf("%f", &tmp) != 1) erro_execucao("falha ao ler um float para '%s'.", nome_var);
+                lido = valor_float(tmp);
+            } else if (strcmp(formato, "%c") == 0) {
+                char tmp;
+                if (scanf(" %c", &tmp) != 1) erro_execucao("falha ao ler um char para '%s'.", nome_var);
+                lido = valor_char(tmp);
+            } else {
+                erro_execucao("formato de scanf invalido.");
+            }
+
+            if (!ambiente_escrever(nome_var, lido, NULL)) {
+                erro_execucao("variavel '%s' nao declarada.", nome_var);
+            }
+            break;
+        }
         case NO_IF:
             /* esq = condicao, dir = comando do if, centro = comando do else (ou NULL) */
             if (valor_verdadeiro(avaliar_expressao(no->esq))) {
