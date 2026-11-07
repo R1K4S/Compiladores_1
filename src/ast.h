@@ -20,6 +20,7 @@ typedef enum {
     NO_WHILE,
     NO_FOR,
     NO_PRINTF,
+    NO_SCANF,
     NO_BLOCO,
     NO_RETURN,
     NO_FUNCAO,      // Preparado para expansão futura
@@ -67,6 +68,7 @@ NoAST* criar_no_if(NoAST* condicao, NoAST* bloco_if, NoAST* bloco_else);
 NoAST* criar_no_while(NoAST* condicao, NoAST* bloco);
 NoAST* criar_no_for(NoAST* init, NoAST* cond, NoAST* inc, NoAST* corpo);
 NoAST* criar_no_printf(const char* formato, NoAST* argumentos);
+NoAST* criar_no_scanf(const char* formato, NoAST* variavel);
 NoAST* criar_no_bloco(NoAST* lista_comandos);
 NoAST* criar_no_return(NoAST* expressao);
 NoAST* criar_no_funcao(int tipo_retorno, const char* nome, NoAST* parametros, NoAST* bloco);
