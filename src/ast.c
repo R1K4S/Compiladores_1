@@ -113,6 +113,13 @@ NoAST* criar_no_printf(const char* formato, NoAST* argumentos) {
     return no;
 }
 
+NoAST* criar_no_scanf(const char* formato, NoAST* variavel) {
+    NoAST* no = alocar_no(NO_SCANF);
+    no->dado.string_val = strdup(formato);
+    no->esq = variavel;
+    return no;
+}
+
 NoAST* criar_no_bloco(NoAST* lista_comandos) {
     NoAST* no = alocar_no(NO_BLOCO);
     no->esq = lista_comandos;
@@ -154,10 +161,11 @@ NoAST* ligar_nos(NoAST* atual, NoAST* proximo) {
 
 /* ===================== Impressao da AST (issue #33) ===================== */
 
-/* Mesma ordem do enum TipoNo em ast.h */
+
 static const char* nomes_no[] = {
     "Int", "Float", "Char", "String", "ID", "Op", "OpUnaria", "Atribuicao",
-    "Declaracao", "If", "While", "Bloco", "Return", "Funcao", "Programa", "Chamada"
+    "Declaracao", "If", "While", "For", "Printf", "Scanf", "Bloco", "Return",
+    "Funcao", "Programa", "Chamada"
 };
 
 const char* nome_token(int t) {
@@ -184,6 +192,7 @@ static void imprimir_no(const NoAST* no, int nivel) {
             case NO_ID:
             case NO_CHAMADA:        printf(" %s", no->dado.string_val); break;
             case NO_FUNCAO:         printf(" %s %s", nome_token(no->tipo_retorno), no->dado.string_val); break;
+            case NO_SCANF:           printf(" %s", no->dado.string_val); break;
             case NO_OP_BINARIA:
             case NO_OP_UNARIA:      printf(" %s", nome_token(no->dado.op)); break;
             case NO_DECLARACAO:     printf(" %s", nome_token(no->dado.tipo_dado)); break;
