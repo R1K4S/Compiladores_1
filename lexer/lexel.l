@@ -2,7 +2,10 @@
 #include "parser.tab.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 %}
+
+%option yylineno
 
 %%
 
@@ -12,21 +15,29 @@
 "if"                                { return IF; }
 "else"                              { return ELSE; }
 "while"                             { return WHILE; }
-
+"for"                               { return FOR; }
+"printf"                            { return PRINTF; }
+"scanf"                             { return SCANF; }
 "int"                               { return INT; }
 "float"                             { return FLOAT; }
 "char"                              { return CHAR; }
 "return"                            { return RETURN; }
 
-[a-zA-Z_][a-zA-Z0-9_]*              { return ID; }
+[a-zA-Z_][a-zA-Z0-9_]*      { 
+                                yylval.str_val = strdup(yytext); 
+                                return ID; 
+                            }
 
-[0-9]+\.[0-9]+                      { return NUM_FLOAT; }
+[0-9]+\.[0-9]+                      {
+                                        yylval.float_val = atof(yytext);
+                                        return NUM_FLOAT;
+                                    }
 [0-9]+                              {
-                                        yylval = atoi(yytext);
+                                        yylval.int_val = atoi(yytext);
                                         return NUM;
                                     }
-'([^'\\\n]|\\.)'                    { yylval = yytext[1]; return CHAR_LITERAL; }
-\"([^\"\\\n]|\\.)*\"                { return STRING_LITERAL; }
+'([^'\\\n]|\\.)'                    { yylval.int_val = yytext[1]; return CHAR_LITERAL; }
+\"([^\"\\\n]|\\.)*\"                { yylval.str_val = strndup(yytext + 1, yyleng - 2); return STRING_LITERAL; }
 
 "=="                                { return EQ; }
 "!="                                { return NEQ; }

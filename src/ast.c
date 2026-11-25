@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "ast.h"
+#include "tabela.h"
+#include "parser.tab.h"   /* nomes dos tokens (PLUS, INT, ...) para imprimir */
 
 /* Função auxiliar privada para alocar e inicializar um nó vazio */
 static NoAST* alocar_no(TipoNo tipo) {
@@ -15,6 +17,7 @@ static NoAST* alocar_no(TipoNo tipo) {
     no->dir = NULL;
     no->centro = NULL;
     no->proximo = NULL;
+    no->tipo_retorno = 0;
     return no;
 }
 
@@ -94,6 +97,29 @@ NoAST* criar_no_while(NoAST* condicao, NoAST* bloco) {
     return no;
 }
 
+NoAST* criar_no_for(NoAST* init, NoAST* cond, NoAST* inc, NoAST* corpo) {
+    NoAST* no = alocar_no(NO_FOR);
+    no->esq = init;       // Inicialização (ex: i = 0)
+    no->centro = cond;    // Condição (ex: i < 10)
+    no->dir = inc;        // Incremento (ex: i = i + 1)
+    no->extra = corpo;    // Bloco de comandos
+    return no;
+}
+
+NoAST* criar_no_printf(const char* formato, NoAST* argumentos) {
+    NoAST* no = alocar_no(NO_PRINTF);
+    no->dado.string_val = strdup(formato);
+    no->esq = argumentos; // Lista de expressões separadas por vírgula
+    return no;
+}
+
+NoAST* criar_no_scanf(const char* formato, NoAST* variavel) {
+    NoAST* no = alocar_no(NO_SCANF);
+    no->dado.string_val = strdup(formato);
+    no->esq = variavel;
+    return no;
+}
+
 NoAST* criar_no_bloco(NoAST* lista_comandos) {
     NoAST* no = alocar_no(NO_BLOCO);
     no->esq = lista_comandos;
@@ -108,10 +134,17 @@ NoAST* criar_no_return(NoAST* expressao) {
 
 NoAST* criar_no_funcao(int tipo_retorno, const char* nome, NoAST* parametros, NoAST* bloco) {
     NoAST* no = alocar_no(NO_FUNCAO);
-    no->dado.tipo_dado = tipo_retorno;
+    no->tipo_retorno = tipo_retorno;   // fora da union, para não colidir com o nome
     no->dado.string_val = strdup(nome);
     no->esq = parametros;
     no->dir = bloco;
+    return no;
+}
+
+NoAST* criar_no_chamada(const char* nome, NoAST* argumentos) {
+    NoAST* no = alocar_no(NO_CHAMADA);
+    no->dado.string_val = strdup(nome);
+    no->esq = argumentos;   // argumentos encadeados por 'proximo'; pode ser NULL
     return no;
 }
 
@@ -124,4 +157,104 @@ NoAST* ligar_nos(NoAST* atual, NoAST* proximo) {
     }
     temp->proximo = proximo;
     return atual;
+}
+
+/* ===================== Impressao da AST (issue #33) ===================== */
+
+
+static const char* nomes_no[] = {
+    "Int", "Float", "Char", "String", "ID", "Op", "OpUnaria", "Atribuicao",
+    "Declaracao", "If", "While", "For", "Printf", "Scanf", "Bloco", "Return",
+    "Funcao", "Programa", "Chamada"
+};
+
+const char* nome_token(int t) {
+    switch (t) {
+        case PLUS: return "+";   case MINUS: return "-";  case TIMES: return "*";
+        case DIVIDE: return "/"; case MOD: return "%";    case EQ: return "==";
+        case NEQ: return "!=";   case LT: return "<";     case GT: return ">";
+        case LE: return "<=";    case GE: return ">=";    case AND: return "&&";
+        case OR: return "||";    case NOT: return "!";
+        case INT: return "int";  case FLOAT: return "float"; case CHAR: return "char";
+        default: return "?";
+    }
+}
+
+/* Imprime o no, seus filhos (esq, dir, centro) e depois os irmaos (proximo) */
+static void imprimir_no(const NoAST* no, int nivel) {
+    for (; no != NULL; no = no->proximo) {
+        printf("%*s%s", nivel * 2, "", nomes_no[no->tipo]);
+        switch (no->tipo) {
+            case NO_LITERAL_INT:    printf(" %d", no->dado.valor_int); break;
+            case NO_LITERAL_FLOAT:  printf(" %g", no->dado.valor_float); break;
+            case NO_LITERAL_CHAR:   printf(" '%c'", no->dado.valor_int); break;
+            case NO_LITERAL_STRING:
+            case NO_ID:
+            case NO_CHAMADA:        printf(" %s", no->dado.string_val); break;
+            case NO_FUNCAO:         printf(" %s %s", nome_token(no->tipo_retorno), no->dado.string_val); break;
+            case NO_SCANF:           printf(" %s", no->dado.string_val); break;
+            case NO_OP_BINARIA:
+            case NO_OP_UNARIA:      printf(" %s", nome_token(no->dado.op)); break;
+            case NO_DECLARACAO:     printf(" %s", nome_token(no->dado.tipo_dado)); break;
+            default: break;
+        }
+        printf("\n");
+        imprimir_no(no->esq, nivel + 1);
+        imprimir_no(no->dir, nivel + 1);
+        imprimir_no(no->centro, nivel + 1);   /* else, quando existir */
+    }
+}
+
+void imprimir_ast(const NoAST* raiz) {
+    printf("Programa\n");
+    imprimir_no(raiz, 1);
+}
+
+/* ===================== Inferencia de tipos ===================== */
+
+int tipo_da_expressao(const NoAST* no) {
+    if (!no) return -1;
+
+    switch (no->tipo) {
+        case NO_LITERAL_INT:    return INT;
+        case NO_LITERAL_FLOAT:  return FLOAT;
+        case NO_LITERAL_CHAR:   return CHAR;
+        case NO_LITERAL_STRING: return TIPO_STRING;
+
+        case NO_ID:
+        case NO_CHAMADA: {
+            Simbolo* s = buscar_variavel(no->dado.string_val);
+            return s ? s->tipo_dado : -1;
+        }
+
+        case NO_ATRIBUICAO:
+            return tipo_da_expressao(no->dir);
+
+        case NO_OP_UNARIA:
+            if (no->dado.op == NOT) return INT; /* resultado logico */
+            return tipo_da_expressao(no->esq);  /* MINUS preserva o tipo do operando */
+
+        case NO_OP_BINARIA: {
+            int op = no->dado.op;
+            /* operadores relacionais/logicos sempre resultam em int (0 ou 1) */
+            if (op == EQ || op == NEQ || op == LT || op == GT || op == LE || op == GE
+                || op == AND || op == OR) {
+                return INT;
+            }
+            /* aritmeticos: promove para float se qualquer lado for float */
+            int te = tipo_da_expressao(no->esq);
+            int td = tipo_da_expressao(no->dir);
+            if (te == FLOAT || td == FLOAT) return FLOAT;
+            return INT;
+        }
+
+        default:
+            return -1;
+    }
+}
+
+int tipos_compativeis(int esperado, int obtido) {
+    if (esperado == obtido) return 1;
+    if ((esperado == INT && obtido == FLOAT) || (esperado == FLOAT && obtido == INT)) return 1;
+    return 0;
 }
