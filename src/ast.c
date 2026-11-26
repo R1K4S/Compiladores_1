@@ -16,6 +16,7 @@ static NoAST* alocar_no(TipoNo tipo) {
     no->esq = NULL;
     no->dir = NULL;
     no->centro = NULL;
+    no->extra = NULL;
     no->proximo = NULL;
     no->tipo_retorno = 0;
     return no;
@@ -100,9 +101,9 @@ NoAST* criar_no_while(NoAST* condicao, NoAST* bloco) {
 NoAST* criar_no_for(NoAST* init, NoAST* cond, NoAST* inc, NoAST* corpo) {
     NoAST* no = alocar_no(NO_FOR);
     no->esq = init;       // Inicialização (ex: i = 0)
-    no->centro = cond;    // Condição (ex: i < 10)
-    no->dir = inc;        // Incremento (ex: i = i + 1)
-    no->extra = corpo;    // Bloco de comandos
+    no->dir = cond;       // Condição (ex: i < 10)
+    no->centro = inc;     // Incremento (ex: i = i + 1)
+    no->extra = corpo;    // Comando do corpo
     return no;
 }
 
@@ -192,7 +193,8 @@ static void imprimir_no(const NoAST* no, int nivel) {
             case NO_ID:
             case NO_CHAMADA:        printf(" %s", no->dado.string_val); break;
             case NO_FUNCAO:         printf(" %s %s", nome_token(no->tipo_retorno), no->dado.string_val); break;
-            case NO_SCANF:           printf(" %s", no->dado.string_val); break;
+            case NO_SCANF:
+            case NO_PRINTF:         printf(" %s", no->dado.string_val); break;
             case NO_OP_BINARIA:
             case NO_OP_UNARIA:      printf(" %s", nome_token(no->dado.op)); break;
             case NO_DECLARACAO:     printf(" %s", nome_token(no->dado.tipo_dado)); break;
@@ -202,6 +204,7 @@ static void imprimir_no(const NoAST* no, int nivel) {
         imprimir_no(no->esq, nivel + 1);
         imprimir_no(no->dir, nivel + 1);
         imprimir_no(no->centro, nivel + 1);   /* else, quando existir */
+        imprimir_no(no->extra, nivel + 1);    /* corpo do for */
     }
 }
 
