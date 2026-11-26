@@ -6,7 +6,7 @@
 #include "parser.tab.h"   /* tokens dos operadores (PLUS, ...) e dos tipos (INT, ...) */
 
 /* Erro de execução: mostra a mensagem e encerra o programa */
-static void erro_execucao(const char* formato, ...) __attribute__((noreturn));
+static void erro_execucao(const char* formato, ...) _attribute_((noreturn));
 static void erro_execucao(const char* formato, ...) {
     va_list args;
     va_start(args, formato);
@@ -201,6 +201,47 @@ void interpretar_comando(const NoAST* no) {
                 interpretar_comando(no->dir);
             }
             break;
+        case NO_FOR:
+            /* esq = init, dir = condicao, centro = incremento, extra = corpo; o for tem escopo proprio */
+            ambiente_entrar_escopo();
+            interpretar_lista(no->esq);
+            while (valor_verdadeiro(avaliar_expressao(no->dir))) {
+                interpretar_comando(no->extra);
+                avaliar_expressao(no->centro);
+            }
+            ambiente_sair_escopo();
+            break;
+        case NO_PRINTF: {
+            /* string_val = formato, esq = argumentos (encadeados por proximo) */
+            const NoAST* arg = no->esq;
+            for (const char* f = no->dado.string_val; *f; f++) {
+                if (f == '\\' && f[1]) {                /* sequencias de escape: \n \t \\ \" */
+                    f++;
+                    putchar(*f == 'n' ? '\n' : *f == 't' ? '\t' : *f);
+                } else if (f == '%' && f[1]) {          /* especificadores: %d %f %c %s %% */
+                    f++;
+                    if (*f == '%') { putchar('%'); continue; }
+                    if (arg == NULL) erro_execucao("printf: faltam argumentos para o formato.");
+                    if (*f == 's') {
+                        if (arg->tipo != NO_LITERAL_STRING) erro_execucao("printf: %%s exige uma string literal.");
+                        printf("%s", arg->dado.string_val);
+                    } else {
+                        Valor v = avaliar_expressao(arg);
+                        switch (*f) {
+                            case 'd': printf("%d", valor_como_int(v)); break;
+                            case 'f': printf("%f", valor_como_float(v)); break;
+                            case 'c': putchar(valor_como_int(v)); break;
+                            default:  erro_execucao("printf: formato '%%%c' invalido.", *f);
+                        }
+                    }
+                    arg = arg->proximo;
+                } else {
+                    putchar(*f);
+                }
+            }
+            if (arg != NULL) erro_execucao("printf: argumentos demais para o formato.");
+            break;
+        }
         case NO_RETURN:
             erro_execucao("este comando ainda nao e suportado pelo interpretador.");
         default:
