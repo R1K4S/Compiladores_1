@@ -10,7 +10,7 @@
 %%
 
 "//".*                              { /* Ignora comentario de uma linha */ }
-"/*"([^*]|\*+[^*/])*\*+"/"          { /* Ignora comentario multilinha */ }
+"/"([^]|\+[^/])\+"/"          { /* Ignora comentario multilinha */ }
 
 "if"                                { return IF; }
 "else"                              { return ELSE; }
@@ -50,6 +50,9 @@
 ">"                                 { return GT; }
 "!"                                 { return NOT; }
 "="                                 { return ASSIGN; }
+
+"++"                                { return INC; }
+"--"                                { return DEC; }
 
 "+"                                 { return PLUS; }
 "-"                                 { return MINUS; }
