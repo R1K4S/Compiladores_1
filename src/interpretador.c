@@ -3,10 +3,11 @@
 #include <string.h>
 #include <stdarg.h>
 #include "interpretador.h"
-#include "parser.tab.h"   /* tokens dos operadores (PLUS, ...) e dos tipos (INT, ...) */
+#include "parser.tab.h"
 
-/* Erro de execução: mostra a mensagem e encerra o programa */
-static void erro_execucao(const char* formato, ...) _attribute_((noreturn));
+static void interpretar_lista(const NoAST* no);
+
+static void erro_execucao(const char* formato, ...) __attribute__((noreturn));
 static void erro_execucao(const char* formato, ...) {
     va_list args;
     va_start(args, formato);
@@ -25,8 +26,6 @@ static TipoValor tipo_valor_do_token(int token) {
     }
 }
 
-/* ===================== Expressões (#47) ===================== */
-
 static Valor avaliar_unaria(const NoAST* no) {
     Valor v = avaliar_expressao(no->esq);
     switch (no->dado.op) {
@@ -42,7 +41,6 @@ static Valor avaliar_unaria(const NoAST* no) {
 static Valor avaliar_binaria(const NoAST* no) {
     int op = no->dado.op;
 
-    /* && e || só avaliam o lado direito quando necessário (curto-circuito) */
     if (op == AND) {
         if (!valor_verdadeiro(avaliar_expressao(no->esq))) return valor_int(0);
         return valor_int(valor_verdadeiro(avaliar_expressao(no->dir)));
@@ -55,7 +53,6 @@ static Valor avaliar_binaria(const NoAST* no) {
     Valor a = avaliar_expressao(no->esq);
     Valor b = avaliar_expressao(no->dir);
 
-    /* Se algum operando é float, a conta é em float; senão (int/char) é em int */
     if (a.tipo == VAL_FLOAT || b.tipo == VAL_FLOAT) {
         float x = valor_como_float(a), y = valor_como_float(b);
         switch (op) {
@@ -96,7 +93,18 @@ static Valor avaliar_binaria(const NoAST* no) {
     erro_execucao("operador binario desconhecido.");
 }
 
-/* ===================== Atribuição e acesso a variáveis (#48) ===================== */
+/* Funcoes (#51) */
+static const NoAST* raiz_programa = NULL;
+static int  retornando = 0;
+static Valor valor_retorno;
+static int  profundidade = 0;
+
+static const NoAST* buscar_funcao(const char* nome) {
+    for (const NoAST* n = raiz_programa; n != NULL; n = n->proximo) {
+        if (n->tipo == NO_FUNCAO && strcmp(n->dado.string_val, nome) == 0) return n;
+    }
+    return NULL;
+}
 
 static Valor avaliar_atribuicao(const NoAST* no) {
     if (no->esq == NULL || no->esq->tipo != NO_ID) {
@@ -107,7 +115,7 @@ static Valor avaliar_atribuicao(const NoAST* no) {
     if (!ambiente_escrever(no->esq->dado.string_val, novo, &gravado)) {
         erro_execucao("variavel '%s' nao declarada.", no->esq->dado.string_val);
     }
-    return gravado;   /* o valor de "x = e" é o valor gravado em x */
+    return gravado;
 }
 
 Valor avaliar_expressao(const NoAST* no) {
@@ -136,8 +144,6 @@ Valor avaliar_expressao(const NoAST* no) {
     }
 }
 
-/* ===================== Comandos ===================== */
-
 static void interpretar_lista(const NoAST* no) {
     for (; no != NULL; no = no->proximo) {
         interpretar_comando(no);
@@ -145,10 +151,9 @@ static void interpretar_lista(const NoAST* no) {
 }
 
 void interpretar_comando(const NoAST* no) {
-    if (no == NULL) return;   /* comando vazio, ex: "if (x) ;" */
+    if (no == NULL) return;
     switch (no->tipo) {
         case NO_DECLARACAO: {
-            /* Sem inicializador, a variável começa com 0 */
             TipoValor tipo = tipo_valor_do_token(no->dado.tipo_dado);
             Valor inicial = no->dir ? avaliar_expressao(no->dir) : valor_int(0);
             ambiente_declarar(no->esq->dado.string_val, converter_valor(inicial, tipo));
@@ -160,7 +165,7 @@ void interpretar_comando(const NoAST* no) {
             ambiente_sair_escopo();
             break;
         case NO_FUNCAO:
-            break;   /* definir uma função não executa nada; chamadas ficam para depois */
+            break;
         case NO_SCANF: {
             const char* formato = no->dado.string_val;
             const char* nome_var = no->esq->dado.string_val;
@@ -188,7 +193,6 @@ void interpretar_comando(const NoAST* no) {
             break;
         }
         case NO_IF:
-            /* esq = condicao, dir = comando do if, centro = comando do else (ou NULL) */
             if (valor_verdadeiro(avaliar_expressao(no->esq))) {
                 interpretar_comando(no->dir);
             } else if (no->centro != NULL) {
@@ -196,13 +200,11 @@ void interpretar_comando(const NoAST* no) {
             }
             break;
         case NO_WHILE:
-            /* esq = condicao, dir = corpo; a condicao e reavaliada a cada volta */
             while (valor_verdadeiro(avaliar_expressao(no->esq))) {
                 interpretar_comando(no->dir);
             }
             break;
         case NO_FOR:
-            /* esq = init, dir = condicao, centro = incremento, extra = corpo; o for tem escopo proprio */
             ambiente_entrar_escopo();
             interpretar_lista(no->esq);
             while (valor_verdadeiro(avaliar_expressao(no->dir))) {
@@ -212,13 +214,12 @@ void interpretar_comando(const NoAST* no) {
             ambiente_sair_escopo();
             break;
         case NO_PRINTF: {
-            /* string_val = formato, esq = argumentos (encadeados por proximo) */
             const NoAST* arg = no->esq;
             for (const char* f = no->dado.string_val; *f; f++) {
-                if (f == '\\' && f[1]) {                /* sequencias de escape: \n \t \\ \" */
+                if (*f == '\\' && f[1]) {
                     f++;
                     putchar(*f == 'n' ? '\n' : *f == 't' ? '\t' : *f);
-                } else if (f == '%' && f[1]) {          /* especificadores: %d %f %c %s %% */
+                } else if (*f == '%' && f[1]) {
                     f++;
                     if (*f == '%') { putchar('%'); continue; }
                     if (arg == NULL) erro_execucao("printf: faltam argumentos para o formato.");
@@ -245,7 +246,7 @@ void interpretar_comando(const NoAST* no) {
         case NO_RETURN:
             erro_execucao("este comando ainda nao e suportado pelo interpretador.");
         default:
-            avaliar_expressao(no);   /* comando de expressão: "x = x + 1;" */
+            avaliar_expressao(no);
             break;
     }
 }
