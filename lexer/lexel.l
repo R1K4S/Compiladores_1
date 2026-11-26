@@ -10,7 +10,7 @@
 %%
 
 "//".*                              { /* Ignora comentario de uma linha */ }
-"/"([^]|\+[^/])\+"/"          { /* Ignora comentario multilinha */ }
+"/*"([^*]|\*+[^*/])*\*+"/"          { /* Ignora comentario multilinha */ }
 
 "if"                                { return IF; }
 "else"                              { return ELSE; }

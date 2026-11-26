@@ -145,7 +145,7 @@ comando:
                                 { sair_escopo(); $$ = criar_no_for($3, $4, $6, $8); }
     | bloco_inicio lista_comandos bloco_fim
                                 { $$ = criar_no_bloco($2); }
-    /| LBRACE lista_comandos RBRACE/
+    /*| LBRACE lista_comandos RBRACE*/
     | declaracao                { $$ = $1; }
     | SCANF LPAREN STRING_LITERAL COMMA ID RPAREN SEMI { $$ = validar_scanf($3, $5); }
     | PRINTF LPAREN STRING_LITERAL RPAREN SEMI { $$ = criar_no_printf($3, NULL); }
