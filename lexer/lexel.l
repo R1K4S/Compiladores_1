@@ -17,7 +17,7 @@
 "while"                             { return WHILE; }
 "for"                               { return FOR; }
 "printf"                            { return PRINTF; }
-
+"scanf"                             { return SCANF; }
 "int"                               { return INT; }
 "float"                             { return FLOAT; }
 "char"                              { return CHAR; }
@@ -50,6 +50,9 @@
 ">"                                 { return GT; }
 "!"                                 { return NOT; }
 "="                                 { return ASSIGN; }
+
+"++"                                { return INC; }
+"--"                                { return DEC; }
 
 "+"                                 { return PLUS; }
 "-"                                 { return MINUS; }

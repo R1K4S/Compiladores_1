@@ -23,6 +23,8 @@ static void verificar_main(void);
 static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir);
 static NoAST* criar_unaria_verificada(int op, NoAST* operando);
 static NoAST* validar_chamada(const char* nome, NoAST* argumentos);
+static NoAST* validar_scanf(const char* formato, const char* nome_var);
+static NoAST* criar_incremento(const char* nome, int op);
 %}
 
 %union {
@@ -42,6 +44,7 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos);
 %token <str_val> STRING_LITERAL
 
 %token PLUS MINUS TIMES DIVIDE MOD
+%token INC DEC
 
 %token EQ NEQ LT GT LE GE
 
@@ -55,13 +58,14 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos);
 
 %token IF ELSE WHILE
 
-%token FOR PRINTF
+%token FOR PRINTF SCANF
 
 %token INT FLOAT CHAR
 
 %token RETURN
 
 %type <no> programa lista_comandos comando declaracao lista_declaracoes declaracao_variavel expressao
+%type <no> for_init
 %type <no> lista_itens item definicao_funcao parametros_opt lista_parametros parametro argumentos_opt lista_argumentos
 %type <int_val> tipo
 
@@ -123,6 +127,13 @@ lista_comandos:
 bloco_inicio: LBRACE { entrar_escopo(); } ;
 bloco_fim: RBRACE { sair_escopo(); } ;
 
+/* O for tem escopo proprio: a variavel de "for (int i = 0; ...)" so existe dentro do laco */
+for_inicio: FOR { entrar_escopo(); } ;
+for_init:
+      declaracao                { $$ = $1; }
+    | expressao SEMI            { $$ = $1; }
+    ;
+
 comando:
       IF LPAREN expressao RPAREN comando %prec LOWER_THAN_ELSE
                                 { $$ = criar_no_if($3, $5, NULL); }
@@ -130,10 +141,15 @@ comando:
                                 { $$ = criar_no_if($3, $5, $7); }
     | WHILE LPAREN expressao RPAREN comando
                                 { $$ = criar_no_while($3, $5); }
+    | for_inicio LPAREN for_init expressao SEMI expressao RPAREN comando
+                                { sair_escopo(); $$ = criar_no_for($3, $4, $6, $8); }
     | bloco_inicio lista_comandos bloco_fim
                                 { $$ = criar_no_bloco($2); }
     /*| LBRACE lista_comandos RBRACE*/
     | declaracao                { $$ = $1; }
+    | SCANF LPAREN STRING_LITERAL COMMA ID RPAREN SEMI { $$ = validar_scanf($3, $5); }
+    | PRINTF LPAREN STRING_LITERAL RPAREN SEMI { $$ = criar_no_printf($3, NULL); }
+    | PRINTF LPAREN STRING_LITERAL COMMA lista_argumentos RPAREN SEMI { $$ = criar_no_printf($3, $5); }
     | RETURN expressao SEMI {
           int t = tipo_da_expressao($2);
           if (tipo_retorno_atual == -1) {
@@ -148,11 +164,6 @@ comando:
     | expressao SEMI            { $$ = $1; }
     ;
 
-lista_expressoes:
-      expressao
-    | lista_expressoes COMMA expressao
-    ;
-    
 declaracao:
       tipo lista_declaracoes SEMI     { $$ = $2; }
     ;
@@ -225,6 +236,10 @@ expressao:
           $$ = criar_no_id($1);
       }
     | ID LPAREN argumentos_opt RPAREN { $$ = validar_chamada($1, $3); }
+    | ID INC                      { $$ = criar_incremento($1, PLUS); }
+    | ID DEC                      { $$ = criar_incremento($1, MINUS); }
+    | INC ID                      { $$ = criar_incremento($2, PLUS); }
+    | DEC ID                      { $$ = criar_incremento($2, MINUS); }
     | NUM                         { $$ = criar_no_literal_int($1); }
     | NUM_FLOAT                   { $$ = criar_no_literal_float($1); }
     | CHAR_LITERAL                { $$ = criar_no_literal_char((char)$1); }
@@ -332,6 +347,45 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos) {
     }
 
     return criar_no_chamada(nome, argumentos);
+}
+
+/* Mapeia o especificador do scanf para o token de tipo esperado, ou -1 se invalido */
+static int tipo_esperado_scanf(const char* formato) {
+    if (strcmp(formato, "%d") == 0) return INT;
+    if (strcmp(formato, "%f") == 0) return FLOAT;
+    if (strcmp(formato, "%c") == 0) return CHAR;
+    return -1;
+}
+
+/* Verifica formato suportado, existencia da variavel e compatibilidade de tipo (exata, sem promocao) */
+static NoAST* validar_scanf(const char* formato, const char* nome_var) {
+    int esperado = tipo_esperado_scanf(formato);
+    if (esperado == -1) {
+        fprintf(stderr,
+            "Erro Semantico na linha %d: scanf aceita apenas os formatos \"%%d\", \"%%f\" ou \"%%c\".\n",
+            yylineno);
+    }
+
+    Simbolo* s = buscar_variavel(nome_var);
+    if (s == NULL) {
+        fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, nome_var);
+    } else if (esperado != -1 && s->tipo_dado != esperado) {
+        fprintf(stderr,
+            "Erro Semantico na linha %d: scanf com formato '%s' espera variavel '%s', mas '%s' e '%s'.\n",
+            yylineno, formato, nome_token(esperado), nome_var, nome_token(s->tipo_dado));
+    }
+
+    return criar_no_scanf(formato, criar_no_id(nome_var));
+}
+
+/* i++, ++i, i-- e --i sao acucar sintatico para "i = i + 1" (ou "- 1"): nao precisam de
+   nada novo no interpretador. O valor da expressao e o valor ja atualizado. */
+static NoAST* criar_incremento(const char* nome, int op) {
+    if (!buscar_variavel(nome)) {
+        fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, nome);
+    }
+    return criar_no_atribuicao(criar_no_id(nome),
+        criar_no_op_binaria(op, criar_no_id(nome), criar_no_literal_int(1)));
 }
 
 /* Todo programa precisa ter uma função 'main'.

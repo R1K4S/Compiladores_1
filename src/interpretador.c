@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
+#include <stdarg.h>
 #include "interpretador.h"
-#include "parser.tab.h"   /* tokens dos operadores (PLUS, ...) e dos tipos (INT, ...) */
+#include "parser.tab.h"
 
-/* Erro de execução: mostra a mensagem e encerra o programa */
+static Valor avaliar_chamada(const NoAST* no);
+static void interpretar_lista(const NoAST* no);
+
 static void erro_execucao(const char* formato, ...) __attribute__((noreturn));
 static void erro_execucao(const char* formato, ...) {
     va_list args;
@@ -17,9 +19,6 @@ static void erro_execucao(const char* formato, ...) {
     exit(1);
 }
 
-static Valor avaliar_chamada(const NoAST* no);
-static void interpretar_lista(const NoAST* no);
-
 static TipoValor tipo_valor_do_token(int token) {
     switch (token) {
         case FLOAT: return VAL_FLOAT;
@@ -27,8 +26,6 @@ static TipoValor tipo_valor_do_token(int token) {
         default:    return VAL_INT;
     }
 }
-
-/* ===================== Expressões (#47) ===================== */
 
 static Valor avaliar_unaria(const NoAST* no) {
     Valor v = avaliar_expressao(no->esq);
@@ -45,7 +42,6 @@ static Valor avaliar_unaria(const NoAST* no) {
 static Valor avaliar_binaria(const NoAST* no) {
     int op = no->dado.op;
 
-    /* && e || só avaliam o lado direito quando necessário (curto-circuito) */
     if (op == AND) {
         if (!valor_verdadeiro(avaliar_expressao(no->esq))) return valor_int(0);
         return valor_int(valor_verdadeiro(avaliar_expressao(no->dir)));
@@ -58,7 +54,6 @@ static Valor avaliar_binaria(const NoAST* no) {
     Valor a = avaliar_expressao(no->esq);
     Valor b = avaliar_expressao(no->dir);
 
-    /* Se algum operando é float, a conta é em float; senão (int/char) é em int */
     if (a.tipo == VAL_FLOAT || b.tipo == VAL_FLOAT) {
         float x = valor_como_float(a), y = valor_como_float(b);
         switch (op) {
@@ -99,8 +94,6 @@ static Valor avaliar_binaria(const NoAST* no) {
     erro_execucao("operador binario desconhecido.");
 }
 
-/* ===================== Atribuição e acesso a variáveis (#48) ===================== */
-
 static Valor avaliar_atribuicao(const NoAST* no) {
     if (no->esq == NULL || no->esq->tipo != NO_ID) {
         erro_execucao("o alvo de uma atribuicao precisa ser uma variavel.");
@@ -110,7 +103,7 @@ static Valor avaliar_atribuicao(const NoAST* no) {
     if (!ambiente_escrever(no->esq->dado.string_val, novo, &gravado)) {
         erro_execucao("variavel '%s' nao declarada.", no->esq->dado.string_val);
     }
-    return gravado;   /* o valor de "x = e" é o valor gravado em x */
+    return gravado;
 }
 
 Valor avaliar_expressao(const NoAST* no) {
@@ -259,10 +252,9 @@ static void interpretar_lista(const NoAST* no) {
 }
 
 void interpretar_comando(const NoAST* no) {
-    if (no == NULL) return;   /* comando vazio, ex: "if (x) ;" */
+    if (no == NULL) return;
     switch (no->tipo) {
         case NO_DECLARACAO: {
-            /* Sem inicializador, a variável começa com 0 */
             TipoValor tipo = tipo_valor_do_token(no->dado.tipo_dado);
             Valor inicial = no->dir ? avaliar_expressao(no->dir) : valor_int(0);
             ambiente_declarar(no->esq->dado.string_val, converter_valor(inicial, tipo));
@@ -274,9 +266,34 @@ void interpretar_comando(const NoAST* no) {
             ambiente_sair_escopo();
             break;
         case NO_FUNCAO:
-            break;   /* definir uma função não executa nada; chamadas ficam para depois */
+            break;
+        case NO_SCANF: {
+            const char* formato = no->dado.string_val;
+            const char* nome_var = no->esq->dado.string_val;
+            Valor lido;
+
+            if (strcmp(formato, "%d") == 0) {
+                int tmp;
+                if (scanf("%d", &tmp) != 1) erro_execucao("falha ao ler um inteiro para '%s'.", nome_var);
+                lido = valor_int(tmp);
+            } else if (strcmp(formato, "%f") == 0) {
+                float tmp;
+                if (scanf("%f", &tmp) != 1) erro_execucao("falha ao ler um float para '%s'.", nome_var);
+                lido = valor_float(tmp);
+            } else if (strcmp(formato, "%c") == 0) {
+                char tmp;
+                if (scanf(" %c", &tmp) != 1) erro_execucao("falha ao ler um char para '%s'.", nome_var);
+                lido = valor_char(tmp);
+            } else {
+                erro_execucao("formato de scanf invalido.");
+            }
+
+            if (!ambiente_escrever(nome_var, lido, NULL)) {
+                erro_execucao("variavel '%s' nao declarada.", nome_var);
+            }
+            break;
+        }
         case NO_IF:
-            /* esq = condicao, dir = comando do if, centro = comando do else (ou NULL) */
             if (valor_verdadeiro(avaliar_expressao(no->esq))) {
                 interpretar_comando(no->dir);
             } else if (no->centro != NULL) {
@@ -289,6 +306,46 @@ void interpretar_comando(const NoAST* no) {
                 interpretar_comando(no->dir);
             }
             break;
+        case NO_FOR:
+            ambiente_entrar_escopo();
+            interpretar_lista(no->esq);
+            while (!retornando && valor_verdadeiro(avaliar_expressao(no->dir))) {
+                interpretar_comando(no->extra);
+                if (retornando) break;   /* 'return' dentro do corpo: nao executa o passo */
+                avaliar_expressao(no->centro);
+            }
+            ambiente_sair_escopo();
+            break;
+        case NO_PRINTF: {
+            const NoAST* arg = no->esq;
+            for (const char* f = no->dado.string_val; *f; f++) {
+                if (*f == '\\' && f[1]) {
+                    f++;
+                    putchar(*f == 'n' ? '\n' : *f == 't' ? '\t' : *f);
+                } else if (*f == '%' && f[1]) {
+                    f++;
+                    if (*f == '%') { putchar('%'); continue; }
+                    if (arg == NULL) erro_execucao("printf: faltam argumentos para o formato.");
+                    if (*f == 's') {
+                        if (arg->tipo != NO_LITERAL_STRING) erro_execucao("printf: %%s exige uma string literal.");
+                        printf("%s", arg->dado.string_val);
+                    } else {
+                        Valor v = avaliar_expressao(arg);
+                        switch (*f) {
+                            case 'd': printf("%d", valor_como_int(v)); break;
+                            case 'f': printf("%f", valor_como_float(v)); break;
+                            case 'c': putchar(valor_como_int(v)); break;
+                            default:  erro_execucao("printf: formato '%%%c' invalido.", *f);
+                        }
+                    }
+                    arg = arg->proximo;
+                } else {
+                    putchar(*f);
+                }
+            }
+            if (arg != NULL) erro_execucao("printf: argumentos demais para o formato.");
+            break;
+        }
         case NO_RETURN:
             if (funcao_atual == NULL) erro_execucao("'return' fora de uma funcao.");
             /* O valor é convertido para o tipo de retorno da função; 'retornando' interrompe o resto */
@@ -297,7 +354,7 @@ void interpretar_comando(const NoAST* no) {
             retornando = 1;
             break;
         default:
-            avaliar_expressao(no);   /* comando de expressão: "x = x + 1;" */
+            avaliar_expressao(no);
             break;
     }
 }
