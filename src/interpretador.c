@@ -364,6 +364,10 @@ void executar_programa(const NoAST* raiz) {
     registrar_funcoes(raiz);
     interpretar_lista(raiz);
 
+    /* Depois dos comandos globais, o programa começa em 'main' */
+    const NoAST* principal = buscar_funcao("main");
+    if (principal != NULL) executar_funcao(principal, NULL);
+
     printf("\n");
     ambiente_imprimir_global();
 }
