@@ -57,6 +57,8 @@ O MiniC possui exatamente **três tipos primitivos**, e nenhum tipo composto (se
 | `float` | Números de ponto flutuante | `9.5`, `-0.25` |
 | `char` | Um único caractere | `'A'`, `'z'`, `'\n'` |
 
+Escapes aceitos num literal `char`: `'\n'` (nova linha), `'\t'` (tabulação), `'\0'` (código 0), `'\\'` (barra), `'\''` (aspa simples) e `'\"'` (aspas). Qualquer outro `'\x'` vale o próprio caractere `x`.
+
 ### 3.1 Declaração de variáveis
 
 Toda variável **deve ser declarada antes de ser utilizada** — não existe inferência de tipo nem declaração implícita (diferente de linguagens como Python). A inicialização no momento da declaração é opcional:
@@ -273,7 +275,7 @@ O último par de exemplos (`y` e `z`) é intencional: reforça que a regra de pr
 
 **(V1.1)** O corpo de `if`, `else`, `while` e `for` é um **comando qualquer**: um bloco `{ ... }` ou um único comando sem chaves, como em C (`if (x > 0) x = 0;`). Usar chaves continua sendo o recomendado. Um `else` pertence sempre ao `if` mais próximo que ainda não tem `else`.
 
-**Limitação atual:** um bloco precisa ter **pelo menos um comando**. `{ }` vazio, inclusive como corpo de função, é erro sintático.
+Um bloco pode ser vazio: `{ }` é aceito como comando, como corpo de `if`/`else`/`while`/`for` e como corpo de função (que ainda precisa de `return`, Seção 8.2).
 
 ### 7.1 `if` e `if-else`
 

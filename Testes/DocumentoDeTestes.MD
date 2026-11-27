@@ -131,5 +131,8 @@ No `make test`, a entrada vem de `07_scanf.in`.
 | Teste | Arquivo | O que verifica | Resultado esperado |
 |---|---|---|---|
 | 01 | `Sintaxe/01_recuperacao_de_erros.c` | Recuperação de erros sintáticos: o parser continua depois de `;` ou `}` e reporta todos os erros numa execução | 3 erros sintáticos (linhas 6, 10, 13) + 1 semântico (linha 15), `4 erro(s) encontrado(s). O programa nao foi executado.`, código de saída 1 |
+| 02 | `Sintaxe/02_linha_exata.c` | Linha exata nos erros semânticos (`%locations`): expressões que continuam na linha seguinte | Erros nas linhas 7 (`y`), 9 (`c`) e 12 (`+` com string), `3 erro(s) encontrado(s)`, código de saída 1 |
+| R01 | `Recursos/01_escapes_char.c` | Escapes em literais `char`: `'\n'` `'\t'` `'\0'` `'\\'` `'\''` | `codigos: 10 9 0 92 39` |
+| R02 | `Recursos/02_blocos_vazios.c` | `{ }` como bloco e como corpo de `if`/`else`/`while`/`for` | `i depois do for vazio: 3`, `funcao vazia devolve: 0` |
 
 ## Ricardo

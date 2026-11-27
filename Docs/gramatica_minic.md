@@ -14,7 +14,7 @@ O Bison gera esta gramática **sem conflitos** shift/reduce ou reduce/reduce.
 | `ID` | `[a-zA-Z_][a-zA-Z0-9_]*` | `str_val` (nome) |
 | `NUM` | `[0-9]+` | `int_val` |
 | `NUM_FLOAT` | `[0-9]+\.[0-9]+` | `float_val` |
-| `CHAR_LITERAL` | `'x'` ou `'\x'` | `int_val` (código do caractere) |
+| `CHAR_LITERAL` | `'x'` ou `'\x'` | `int_val` (código do caractere; `\n` `\t` `\0` são traduzidos, outro `\x` vale `x`) |
 | `STRING_LITERAL` | `"..."` (sem quebra de linha) | `str_val` (sem as aspas) |
 | `PLUS` `MINUS` `TIMES` `DIVIDE` `MOD` | `+ - * / %` | — |
 | `INC` `DEC` | `++ --` | — |
@@ -38,7 +38,9 @@ lista_itens      : lista_itens item
 item             : comando
                  | definicao_funcao ;
 
-definicao_funcao : tipo ID LPAREN parametros_opt RPAREN LBRACE lista_comandos RBRACE ;
+definicao_funcao : tipo ID LPAREN parametros_opt RPAREN corpo_funcao ;
+corpo_funcao     : LBRACE lista_comandos RBRACE
+                 | LBRACE RBRACE ;                /* corpo vazio */
 
 parametros_opt   : /* vazio */
                  | lista_parametros ;
@@ -47,13 +49,14 @@ lista_parametros : parametro
 parametro        : tipo ID ;
 
 lista_comandos   : lista_comandos comando
-                 | comando ;                      /* pelo menos 1 comando */
+                 | comando ;
 
 comando          : IF LPAREN expressao RPAREN comando          %prec LOWER_THAN_ELSE
                  | IF LPAREN expressao RPAREN comando ELSE comando
                  | WHILE LPAREN expressao RPAREN comando
                  | FOR LPAREN for_init expressao SEMI expressao RPAREN comando
                  | LBRACE lista_comandos RBRACE
+                 | LBRACE RBRACE                  /* bloco vazio */
                  | declaracao
                  | SCANF LPAREN STRING_LITERAL COMMA ID RPAREN SEMI
                  | PRINTF LPAREN STRING_LITERAL RPAREN SEMI
@@ -127,7 +130,7 @@ A regra única `expressao` do Bison aceita mais do que a EBNF permite. O exceden
 
 ## 5. Mensagens de erro sintático
 
-`%define parse.error verbose` faz o Bison informar o token encontrado e os esperados, por exemplo:
+`%define parse.error verbose` faz o Bison informar o token encontrado e os esperados. A linha é a do token inesperado. Já os erros semânticos usam `%locations` e apontam a linha do próprio símbolo com problema (`@n.first_line`), mesmo quando a expressão continua na linha seguinte. Exemplos:
 
 ```text
 Erro sintático na linha 1: syntax error, unexpected SEMI

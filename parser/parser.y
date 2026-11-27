@@ -26,13 +26,13 @@ int total_erros = 0;
 #define ERRO_SEMANTICO(...) do { total_erros++; fprintf(stderr, __VA_ARGS__); } while (0)
 
 /* Definidas no fim do arquivo (lá os tokens, como INT, já existem) */
-static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params);
+static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params, int linha);
 static void verificar_main(void);
-static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir);
-static NoAST* criar_unaria_verificada(int op, NoAST* operando);
-static NoAST* validar_chamada(const char* nome, NoAST* argumentos);
-static NoAST* validar_scanf(const char* formato, const char* nome_var);
-static NoAST* criar_incremento(const char* nome, int op);
+static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir, int linha);
+static NoAST* criar_unaria_verificada(int op, NoAST* operando, int linha);
+static NoAST* validar_chamada(const char* nome, NoAST* argumentos, int linha);
+static NoAST* validar_scanf(const char* formato, const char* nome_var, int linha);
+static NoAST* criar_incremento(const char* nome, int op, int linha);
 %}
 
 %union {
@@ -46,6 +46,9 @@ static NoAST* criar_incremento(const char* nome, int op);
 
 /* Habilita mensagens detalhadas: "syntax error, unexpected ID, expecting SEMI" */
 %define parse.error verbose
+
+/* Posicao (linha) de cada simbolo: @n.first_line nas acoes, para erros apontarem a linha exata */
+%locations
 
 %token <int_val> NUM CHAR_LITERAL
 %token <float_val> NUM_FLOAT
@@ -112,7 +115,7 @@ item:
     ;
 
 definicao_funcao:
-      tipo ID LPAREN parametros_opt RPAREN { iniciar_funcao($1, $2, $4); }
+      tipo ID LPAREN parametros_opt RPAREN { iniciar_funcao($1, $2, $4, @2.first_line); }
       corpo_funcao
         { restaurar_escopo(NIVEL_GLOBAL); tipo_retorno_atual = -1; $$ = criar_no_funcao($1, $2, $4, criar_no_bloco($7)); }
     ;
@@ -121,6 +124,7 @@ definicao_funcao:
    descartam tokens ate o '}' e continuam a analise do resto do programa. */
 corpo_funcao:
       LBRACE lista_comandos RBRACE          { $$ = $2; }
+    | LBRACE RBRACE                         { $$ = NULL; }   /* corpo vazio */
     | LBRACE lista_comandos error RBRACE    { yyerrok; $$ = $2; }
     | LBRACE error RBRACE                   { yyerrok; $$ = NULL; }
     ;
@@ -165,6 +169,7 @@ comando:
                                 { sair_escopo(); $$ = criar_no_for($3, $4, $6, $8); }
     | bloco_inicio lista_comandos bloco_fim
                                 { $$ = criar_no_bloco($2); }
+    | bloco_inicio bloco_fim    { $$ = criar_no_bloco(NULL); }   /* bloco vazio: { } */
     /* Recuperacao de erros sintaticos (semana 05): o Bison descarta tokens ate achar
        ';' ou '}' e a analise continua, para reportar varios erros numa execucao.
        Como ha erro, o programa nao sera executado (ver main). */
@@ -174,17 +179,17 @@ comando:
                                 { yyerrok; $$ = NULL; }
     | error SEMI                { yyerrok; $$ = NULL; }
     | declaracao                { $$ = $1; }
-    | SCANF LPAREN STRING_LITERAL COMMA ID RPAREN SEMI { $$ = validar_scanf($3, $5); }
+    | SCANF LPAREN STRING_LITERAL COMMA ID RPAREN SEMI { $$ = validar_scanf($3, $5, @1.first_line); }
     | PRINTF LPAREN STRING_LITERAL RPAREN SEMI { $$ = criar_no_printf($3, NULL); }
     | PRINTF LPAREN STRING_LITERAL COMMA lista_argumentos RPAREN SEMI { $$ = criar_no_printf($3, $5); }
     | RETURN expressao SEMI {
           int t = tipo_da_expressao($2);
           if (tipo_retorno_atual == -1) {
-              ERRO_SEMANTICO("Erro Semantico na linha %d: 'return' fora de uma funcao.\n", yylineno);
+              ERRO_SEMANTICO("Erro Semantico na linha %d: 'return' fora de uma funcao.\n", @1.first_line);
           } else if (t != -1 && !tipos_compativeis(tipo_retorno_atual, t)){
               ERRO_SEMANTICO(
                   "Erro Semantico na linha %d: tipo de retorno incompativel (esperado '%s').\n",
-                  yylineno, nome_token(tipo_retorno_atual));
+                  @1.first_line, nome_token(tipo_retorno_atual));
           }
           $$ = criar_no_return($2);
       }
@@ -211,19 +216,19 @@ tipo:
 declaracao_variavel:
       ID {
           if (!inserir_variavel($1, tipo_atual)) {
-              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", yylineno, $1);
+              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", @1.first_line, $1);
           }
           $$ = criar_no_declaracao(tipo_atual, criar_no_id($1), NULL);
       }
     | ID ASSIGN expressao {
           if (!inserir_variavel($1, tipo_atual)) {
-              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", yylineno, $1);
+              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", @1.first_line, $1);
           }
           int td = tipo_da_expressao($3);
           if (td != -1 && !tipos_compativeis(tipo_atual, td)) {
               ERRO_SEMANTICO(
                   "Erro Semantico na linha %d: inicializacao incompativel para '%s' (esperado '%s').\n",
-                  yylineno, $1, nome_token(tipo_atual));
+                  @1.first_line, $1, nome_token(tipo_atual));
           }
           $$ = criar_no_declaracao(tipo_atual, criar_no_id($1), $3);
       }
@@ -236,37 +241,37 @@ expressao:
           if (te != -1 && td != -1 && !tipos_compativeis(te, td)) {
               ERRO_SEMANTICO(
                   "Erro Semantico na linha %d: atribuicao incompativel (tipo '%s' nao aceita o valor atribuido).\n",
-                  yylineno, nome_token(te));
+                  @2.first_line, nome_token(te));
           }
           $$ = criar_no_atribuicao($1, $3);
       }
-    | expressao OR expressao      { $$ = criar_binaria_verificada(OR, $1, $3); }
-    | expressao AND expressao     { $$ = criar_binaria_verificada(AND, $1, $3); }
-    | expressao EQ expressao      { $$ = criar_binaria_verificada(EQ, $1, $3); }
-    | expressao NEQ expressao     { $$ = criar_binaria_verificada(NEQ, $1, $3); }
-    | expressao LT expressao      { $$ = criar_binaria_verificada(LT, $1, $3); }
-    | expressao GT expressao      { $$ = criar_binaria_verificada(GT, $1, $3); }
-    | expressao LE expressao      { $$ = criar_binaria_verificada(LE, $1, $3); }
-    | expressao GE expressao      { $$ = criar_binaria_verificada(GE, $1, $3); }
-    | expressao PLUS expressao    { $$ = criar_binaria_verificada(PLUS, $1, $3); }
-    | expressao MINUS expressao   { $$ = criar_binaria_verificada(MINUS, $1, $3); }
-    | expressao TIMES expressao   { $$ = criar_binaria_verificada(TIMES, $1, $3); }
-    | expressao DIVIDE expressao  { $$ = criar_binaria_verificada(DIVIDE, $1, $3); }
-    | expressao MOD expressao     { $$ = criar_binaria_verificada(MOD, $1, $3); }
-    | NOT expressao                { $$ = criar_unaria_verificada(NOT, $2); }
-    | MINUS expressao %prec UMINUS { $$ = criar_unaria_verificada(MINUS, $2); }
+    | expressao OR expressao      { $$ = criar_binaria_verificada(OR, $1, $3, @2.first_line); }
+    | expressao AND expressao     { $$ = criar_binaria_verificada(AND, $1, $3, @2.first_line); }
+    | expressao EQ expressao      { $$ = criar_binaria_verificada(EQ, $1, $3, @2.first_line); }
+    | expressao NEQ expressao     { $$ = criar_binaria_verificada(NEQ, $1, $3, @2.first_line); }
+    | expressao LT expressao      { $$ = criar_binaria_verificada(LT, $1, $3, @2.first_line); }
+    | expressao GT expressao      { $$ = criar_binaria_verificada(GT, $1, $3, @2.first_line); }
+    | expressao LE expressao      { $$ = criar_binaria_verificada(LE, $1, $3, @2.first_line); }
+    | expressao GE expressao      { $$ = criar_binaria_verificada(GE, $1, $3, @2.first_line); }
+    | expressao PLUS expressao    { $$ = criar_binaria_verificada(PLUS, $1, $3, @2.first_line); }
+    | expressao MINUS expressao   { $$ = criar_binaria_verificada(MINUS, $1, $3, @2.first_line); }
+    | expressao TIMES expressao   { $$ = criar_binaria_verificada(TIMES, $1, $3, @2.first_line); }
+    | expressao DIVIDE expressao  { $$ = criar_binaria_verificada(DIVIDE, $1, $3, @2.first_line); }
+    | expressao MOD expressao     { $$ = criar_binaria_verificada(MOD, $1, $3, @2.first_line); }
+    | NOT expressao                { $$ = criar_unaria_verificada(NOT, $2, @1.first_line); }
+    | MINUS expressao %prec UMINUS { $$ = criar_unaria_verificada(MINUS, $2, @1.first_line); }
     | LPAREN expressao RPAREN     { $$ = $2; }
     | ID {
           if (!buscar_variavel($1)) {
-              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, $1);
+              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", @1.first_line, $1);
           }
           $$ = criar_no_id($1);
       }
-    | ID LPAREN argumentos_opt RPAREN { $$ = validar_chamada($1, $3); }
-    | ID INC                      { $$ = criar_incremento($1, PLUS); }
-    | ID DEC                      { $$ = criar_incremento($1, MINUS); }
-    | INC ID                      { $$ = criar_incremento($2, PLUS); }
-    | DEC ID                      { $$ = criar_incremento($2, MINUS); }
+    | ID LPAREN argumentos_opt RPAREN { $$ = validar_chamada($1, $3, @1.first_line); }
+    | ID INC                      { $$ = criar_incremento($1, PLUS, @1.first_line); }
+    | ID DEC                      { $$ = criar_incremento($1, MINUS, @1.first_line); }
+    | INC ID                      { $$ = criar_incremento($2, PLUS, @2.first_line); }
+    | DEC ID                      { $$ = criar_incremento($2, MINUS, @2.first_line); }
     | NUM                         { $$ = criar_no_literal_int($1); }
     | NUM_FLOAT                   { $$ = criar_no_literal_float($1); }
     | CHAR_LITERAL                { $$ = criar_no_literal_char((char)$1); }
@@ -287,7 +292,7 @@ lista_argumentos:
 
 /* Chamada logo após o ')' de uma definição de função: registra a função na tabela
    (no escopo atual), abre o escopo da função e insere os parâmetros nele. */
-static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
+static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params, int linha) {
     /* Funcoes so existem no nivel do programa: se um erro sintatico anterior deixou
        escopos abertos, volta ao global antes de registrar esta funcao */
     restaurar_escopo(NIVEL_GLOBAL);
@@ -304,11 +309,11 @@ static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
     }
 
     if (strcmp(nome, "main") == 0 && (tipo_retorno != INT || n != 0)) {
-        ERRO_SEMANTICO("Erro Semantico na linha %d: 'main' deve ter a assinatura 'int main()'.\n", yylineno);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: 'main' deve ter a assinatura 'int main()'.\n", linha);
     }
 
     if (!inserir_funcao(nome, tipo_retorno, n, tipos)) {
-        ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' ja declarado neste escopo.\n", yylineno, nome);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' ja declarado neste escopo.\n", linha, nome);
     }
     free(tipos);
 
@@ -316,42 +321,42 @@ static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
     for (NoAST* p = params; p != NULL; p = p->proximo) {
         const char* nome_param = p->esq->dado.string_val;
         if (!inserir_variavel(nome_param, p->dado.tipo_dado)) {
-            ERRO_SEMANTICO("Erro Semantico na linha %d: Parametro '%s' duplicado na funcao '%s'.\n", yylineno, nome_param, nome);
+            ERRO_SEMANTICO("Erro Semantico na linha %d: Parametro '%s' duplicado na funcao '%s'.\n", linha, nome_param, nome);
         }
     }
 }
 
 /* Constroi um no de operacao binaria, verificando antes que nenhum operando seja string */
-static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir) {
+static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir, int linha) {
     int te = tipo_da_expressao(esq);
     int td = tipo_da_expressao(dir);
     if (te == TIPO_STRING || td == TIPO_STRING) {
         ERRO_SEMANTICO("Erro Semantico na linha %d: operador '%s' nao pode ser aplicado a uma string.\n",
-                yylineno, nome_token(op));
+                linha, nome_token(op));
     }
     return criar_no_op_binaria(op, esq, dir);
 }
 
 /* Constroi um no de operacao unaria, verificando antes que o operando nao seja string */
-static NoAST* criar_unaria_verificada(int op, NoAST* operando) {
+static NoAST* criar_unaria_verificada(int op, NoAST* operando, int linha) {
     if (tipo_da_expressao(operando) == TIPO_STRING) {
         ERRO_SEMANTICO("Erro Semantico na linha %d: operador '%s' nao pode ser aplicado a uma string.\n",
-                yylineno, nome_token(op));
+                linha, nome_token(op));
     }
     return criar_no_op_unaria(op, operando);
 }
 
 /* Verifica existencia da funcao, aridade e tipos dos argumentos antes de construir o no de chamada */
-static NoAST* validar_chamada(const char* nome, NoAST* argumentos) {
+static NoAST* validar_chamada(const char* nome, NoAST* argumentos, int linha) {
     Simbolo* s = buscar_variavel(nome);
 
     if (s == NULL) {
-        ERRO_SEMANTICO("Erro Semantico na linha %d: funcao '%s' nao declarada.\n", yylineno, nome);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: funcao '%s' nao declarada.\n", linha, nome);
         return criar_no_chamada(nome, argumentos);
     }
 
     if (!s->eh_funcao) {
-        ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' nao e uma funcao.\n", yylineno, nome);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' nao e uma funcao.\n", linha, nome);
         return criar_no_chamada(nome, argumentos);
     }
 
@@ -361,7 +366,7 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos) {
     if (n_args != s->num_params) {
         ERRO_SEMANTICO(
             "Erro Semantico na linha %d: funcao '%s' espera %d argumento(s), recebeu %d.\n",
-            yylineno, nome, s->num_params, n_args);
+            linha, nome, s->num_params, n_args);
         return criar_no_chamada(nome, argumentos);
     }
 
@@ -372,7 +377,7 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos) {
         if (t_arg != -1 && !tipos_compativeis(t_param, t_arg)) {
             ERRO_SEMANTICO(
                 "Erro Semantico na linha %d: argumento %d de '%s' incompativel (esperado '%s').\n",
-                yylineno, i + 1, nome, nome_token(t_param));
+                linha, i + 1, nome, nome_token(t_param));
         }
     }
 
@@ -388,21 +393,21 @@ static int tipo_esperado_scanf(const char* formato) {
 }
 
 /* Verifica formato suportado, existencia da variavel e compatibilidade de tipo (exata, sem promocao) */
-static NoAST* validar_scanf(const char* formato, const char* nome_var) {
+static NoAST* validar_scanf(const char* formato, const char* nome_var, int linha) {
     int esperado = tipo_esperado_scanf(formato);
     if (esperado == -1) {
         ERRO_SEMANTICO(
             "Erro Semantico na linha %d: scanf aceita apenas os formatos \"%%d\", \"%%f\" ou \"%%c\".\n",
-            yylineno);
+            linha);
     }
 
     Simbolo* s = buscar_variavel(nome_var);
     if (s == NULL) {
-        ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, nome_var);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", linha, nome_var);
     } else if (esperado != -1 && s->tipo_dado != esperado) {
         ERRO_SEMANTICO(
             "Erro Semantico na linha %d: scanf com formato '%s' espera variavel '%s', mas '%s' e '%s'.\n",
-            yylineno, formato, nome_token(esperado), nome_var, nome_token(s->tipo_dado));
+            linha, formato, nome_token(esperado), nome_var, nome_token(s->tipo_dado));
     }
 
     return criar_no_scanf(formato, criar_no_id(nome_var));
@@ -410,9 +415,9 @@ static NoAST* validar_scanf(const char* formato, const char* nome_var) {
 
 /* i++, ++i, i-- e --i sao acucar sintatico para "i = i + 1" (ou "- 1"): nao precisam de
    nada novo no interpretador. O valor da expressao e o valor ja atualizado. */
-static NoAST* criar_incremento(const char* nome, int op) {
+static NoAST* criar_incremento(const char* nome, int op, int linha) {
     if (!buscar_variavel(nome)) {
-        ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, nome);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", linha, nome);
     }
     return criar_no_atribuicao(criar_no_id(nome),
         criar_no_op_binaria(op, criar_no_id(nome), criar_no_literal_int(1)));
