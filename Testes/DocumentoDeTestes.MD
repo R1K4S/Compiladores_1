@@ -142,11 +142,11 @@ No `make test`, a entrada vem de `07_scanf.in`.
 
 | Teste | Arquivo | O que verifica | Resultado esperado |
 |---|---|---|---|
-| 01 | `Sintaxe/01_recuperacao_de_erros.c` | Recuperação de erros sintáticos: o parser continua depois de `;` ou `}` e reporta todos os erros numa execução | 3 erros sintáticos (linhas 6, 10, 13) + 1 semântico (linha 15), `4 erro(s) encontrado(s). O programa nao foi executado.`, código de saída 1 |
-| 02 | `Sintaxe/02_linha_exata.c` | Linha exata nos erros semânticos (`%locations`): expressões que continuam na linha seguinte | Erros nas linhas 7 (`y`), 9 (`c`) e 12 (`+` com string), `3 erro(s) encontrado(s)`, código de saída 1 |
-| R01 | `Recursos/01_escapes_char.c` | Escapes em literais `char`: `'\n'` `'\t'` `'\0'` `'\\'` `'\''` | `codigos: 10 9 0 92 39` |
-| R02 | `Recursos/02_blocos_vazios.c` | `{ }` como bloco e como corpo de `if`/`else`/`while`/`for` | `i depois do for vazio: 3`, `funcao vazia devolve: 0` |
-| R03 | `Recursos/03_chamada_antes_da_definicao.c` | `main` chama funções definidas abaixo dela; recursão mútua `par`/`impar` | `dobro(21) = 42`, `par(10) = 1, par(7) = 0`, `impar(7) = 1` |
-| R04 | `Recursos/04_erros_de_funcao_tardia_e_return.c` | `return` ausente (`if` sem `else`, `return` só no `while`) e erros de chamadas conferidas no fim (aridade, função inexistente) | Erros nas linhas 14, 20, 9 e 10 (nessa ordem), `4 erro(s) encontrado(s)`, código de saída 1 |
+| 01 | `Ricardo/01_recuperacao_de_erros.c` | Recuperação de erros sintáticos: o parser continua depois de `;` ou `}` e reporta todos os erros numa execução | 3 erros sintáticos (linhas 6, 10, 13) + 1 semântico (linha 15), `4 erro(s) encontrado(s). O programa nao foi executado.`, código de saída 1 |
+| 02 | `Ricardo/02_linha_exata.c` | Linha exata nos erros semânticos (`%locations`): expressões que continuam na linha seguinte | Erros nas linhas 7 (`y`), 9 (`c`) e 12 (`+` com string), `3 erro(s) encontrado(s)`, código de saída 1 |
+| R01 | `Ricardo/01_escapes_char.c` | Escapes em literais `char`: `'\n'` `'\t'` `'\0'` `'\\'` `'\''` | `codigos: 10 9 0 92 39` |
+| R02 | `Ricardo/02_blocos_vazios.c` | `{ }` como bloco e como corpo de `if`/`else`/`while`/`for` | `i depois do for vazio: 3`, `funcao vazia devolve: 0` |
+| R03 | `Ricardo/03_chamada_antes_da_definicao.c` | `main` chama funções definidas abaixo dela; recursão mútua `par`/`impar` | `dobro(21) = 42`, `par(10) = 1, par(7) = 0`, `impar(7) = 1` |
+| R04 | `Ricardo/04_erros_de_funcao_tardia_e_return.c` | `return` ausente (`if` sem `else`, `return` só no `while`) e erros de chamadas conferidas no fim (aridade, função inexistente) | Erros nas linhas 14, 20, 9 e 10 (nessa ordem), `4 erro(s) encontrado(s)`, código de saída 1 |
 
 ## Ricardo

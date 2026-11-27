@@ -1,7 +1,0 @@
-
---- stderr ---
-Erro Semantico na linha 7: Variavel 'y' nao declarada.
-Erro Semantico na linha 9: inicializacao incompativel para 'c' (esperado 'char').
-Erro Semantico na linha 12: operador '+' nao pode ser aplicado a uma string.
-3 erro(s) encontrado(s). O programa nao foi executado.
---- exit: 1 ---

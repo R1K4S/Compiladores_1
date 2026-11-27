@@ -1,8 +1,0 @@
-
---- stderr ---
-Erro Semantico na linha 14: funcao 'sem_else' pode terminar sem 'return'.
-Erro Semantico na linha 20: funcao 'so_laco' pode terminar sem 'return'.
-Erro Semantico na linha 9: funcao 'tardia' espera 2 argumento(s), recebeu 1.
-Erro Semantico na linha 10: funcao 'nunca_definida' nao declarada.
-4 erro(s) encontrado(s). O programa nao foi executado.
---- exit: 1 ---

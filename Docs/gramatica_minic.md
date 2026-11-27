@@ -153,7 +153,7 @@ Todas chamam `yyerrok`, para que o próximo erro também seja reportado. Quando 
 **Erros em cascata:** se falta um `(`, `)` ou `{`, um `}` pode ser interpretado como fim da função. Os comandos seguintes então geram erros extras, por exemplo "variável não declarada" ou "'return' fora de uma funcao". Corrija sempre o **primeiro** erro da lista e rode de novo.
 
 ```text
-$ ./build/compilador Testes/Sintaxe/01_recuperacao_de_erros.c
+$ ./build/compilador Testes/Ricardo/01_recuperacao_de_erros.c
 Erro sintático na linha 6: syntax error, unexpected SEMI
 Erro sintático na linha 10: syntax error, unexpected SEMI
 Erro sintático na linha 13: syntax error, unexpected SEMI
