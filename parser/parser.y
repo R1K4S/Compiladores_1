@@ -402,8 +402,24 @@ void yyerror(const char *s)
     fprintf(stderr, "Erro sintático na linha %d: %s\n", yylineno, s);
 }
 
-int main(void)
+extern FILE* yyin; /* Entrada do Flex: por padrao stdin */
+
+/* Uso: ./build/compilador programa.c   (recomendado: deixa o stdin livre para o scanf)
+        ./build/compilador < programa.c (ainda aceito, mas o scanf nao tera entrada) */
+int main(int argc, char** argv)
 {
+    if (argc > 2) {
+        fprintf(stderr, "Uso: %s [arquivo.c]\n", argv[0]);
+        return 1;
+    }
+    if (argc == 2) {
+        yyin = fopen(argv[1], "r");
+        if (yyin == NULL) {
+            perror(argv[1]);
+            return 1;
+        }
+    }
+
     inicializar_tabela();
 
     if (yyparse() == 0)
