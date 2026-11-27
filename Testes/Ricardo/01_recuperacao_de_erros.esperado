@@ -1,0 +1,8 @@
+
+--- stderr ---
+Erro sintático na linha 6: syntax error, unexpected SEMI
+Erro sintático na linha 10: syntax error, unexpected SEMI
+Erro sintático na linha 13: syntax error, unexpected SEMI
+Erro Semantico na linha 15: Variavel 'nao_declarada' nao declarada.
+4 erro(s) encontrado(s). O programa nao foi executado.
+--- exit: 1 ---
