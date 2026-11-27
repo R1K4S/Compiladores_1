@@ -26,6 +26,18 @@ O arquivo vai como argumento. Assim o stdin fica livre para o `scanf`.
 
 Cada pasta de `Testes/` pertence a um membro. Os programas são escritos em MiniC e entram pela entrada padrão. As mensagens de erro saem pelo `stderr`, então aparecem antes do restante da saída quando há pipe.
 
+## Programas de referência (`programas_teste/`)
+
+Fatorial, Fibonacci e MDC eram os programas de referência em C da Sprint 1. Eles foram reescritos em MiniC válido e entram no `make test`, com a entrada do `scanf` no `.in` de cada um.
+
+| Programa | Entrada (`.in`) | Saída esperada | Diferenças em relação à versão em C |
+|---|---|---|---|
+| `fatorial.c` | `10` | `Fatorial de 10 = 3628800` | `int` no lugar de `unsigned long long` (maior fatorial exato: 12!), `scanf` sem `&` |
+| `fibonacci.c` | `30` | `832040` | Cálculo iterativo no lugar da memoização com vetor (o MiniC não tem vetores nem `long`); maior termo exato: `fibonacci(46)` |
+| `mdc.c` | `48 18` | `Mdc (48 , 18) -> funcao mdc basica = 6` | Um `scanf` por variável, sem `&`; `while` no lugar do `for` com corpo vazio |
+
+Os executáveis gerados com `gcc` a partir das versões em C (`fatorial`, `fibo`, `mdc`) foram removidos do repositório e estão no `.gitignore`.
+
 ## Felipe
 
 **Escopo testado:** declaração de variáveis, escopo, expressões aritméticas, operadores relacionais e lógicos, atribuição e conversão de tipos, erros semânticos (variáveis, tipos e funções) e erros de execução.

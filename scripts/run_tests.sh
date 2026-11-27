@@ -2,8 +2,8 @@
 # =========================================================
 # Testes automatizados do interpretador MiniC
 #
-# Roda cada Testes/<pasta>/<teste>.c e compara a saida com
-# Testes/<pasta>/<teste>.esperado (no estilo do run_tests.sh
+# Roda cada Testes/<pasta>/<teste>.c (e cada programas_teste/<prog>.c)
+# e compara a saida com o <teste>.esperado ao lado (no estilo do run_tests.sh
 # das semanas 07-08 do COMP1, mas comparando com diff).
 #
 #   make test             -> compara (sai com 1 se algum teste falhar)
@@ -37,7 +37,7 @@ falhou=0
 falhas=""
 
 shopt -s nullglob
-for prog in Testes/*/*.c; do
+for prog in Testes/*/*.c programas_teste/*.c; do
     esperado="${prog%.c}.esperado"
     entrada="${prog%.c}.in"
     [ -f "$entrada" ] || entrada="/dev/null"
@@ -52,6 +52,10 @@ for prog in Testes/*/*.c; do
         cat "$TMP_ERR"
         printf -- '--- exit: %s ---\n' "$codigo"
     } > "$TMP_OBTIDO"
+
+    # Espacos no fim das linhas sao removidos (ao gravar e ao comparar): assim os
+    # .esperado nao dependem de espacos invisiveis, que editores e o WhatsApp apagam
+    sed 's/[[:space:]]*$//' "$TMP_OBTIDO" > "$TMP_OBTIDO.limpo" && mv "$TMP_OBTIDO.limpo" "$TMP_OBTIDO"
 
     if [ "$MODO" = "atualizar" ]; then
         cp "$TMP_OBTIDO" "$esperado"

@@ -1,0 +1,79 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int mdc
+    Declaracao int
+      ID a
+    Declaracao int
+      ID b
+    Bloco
+      Declaracao int
+        ID temp
+      Declaracao int
+        ID i
+      If
+        Op >
+          ID a
+          ID b
+        Bloco
+          Atribuicao
+            ID temp
+            ID a
+          Atribuicao
+            ID a
+            ID b
+          Atribuicao
+            ID b
+            ID temp
+      Atribuicao
+        ID i
+        ID a
+      While
+        Op &&
+          Op >
+            ID i
+            Int 1
+          OpUnaria !
+            Op &&
+              Op ==
+                Op %
+                  ID a
+                  ID i
+                Int 0
+              Op ==
+                Op %
+                  ID b
+                  ID i
+                Int 0
+        Bloco
+          Atribuicao
+            ID i
+            Op -
+              ID i
+              Int 1
+      Return
+        ID i
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID a
+      Declaracao int
+        ID b
+      Printf Digite os dois valores:
+      Scanf %d
+        ID a
+      Scanf %d
+        ID b
+      Printf Mdc (%d , %d) -> funcao mdc basica = %d\n
+        ID a
+        ID b
+        Chamada mdc
+          ID a
+          ID b
+      Return
+        Int 0
+Digite os dois valores: Mdc (48 , 18) -> funcao mdc basica = 6
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

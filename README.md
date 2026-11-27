@@ -113,7 +113,7 @@ Fora do escopo: vetores, ponteiros, `struct`, strings em variáveis, `switch`, `
 make test
 ```
 
-Cada `Testes/<pasta>/<teste>.c` é executado e comparado, via `diff`, com o arquivo `<teste>.esperado` ao lado. A comparação inclui stdout, stderr e o código de saída. Se existir `<teste>.in`, ele é usado como entrada do `scanf`. O comando termina com `Resultado: N passaram, 0 falharam.` e sai com código 1 se algum teste falhar, mostrando o diff.
+Cada `Testes/<pasta>/<teste>.c` (e cada programa de referência em `programas_teste/`) é executado e comparado, via `diff`, com o arquivo `<teste>.esperado` ao lado. A comparação inclui stdout, stderr e o código de saída. Se existir `<teste>.in`, ele é usado como entrada do `scanf`. O comando termina com `Resultado: N passaram, 0 falharam.` e sai com código 1 se algum teste falhar, mostrando o diff.
 
 Para criar um teste novo, coloque o `.c` (e o `.in`, se precisar) em `Testes/<pasta>/` e rode `make test-atualizar`. Esse comando regrava **todos** os `.esperado` com a saída atual, então confira com `git diff Testes/` antes de commitar.
 

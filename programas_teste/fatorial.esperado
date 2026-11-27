@@ -1,0 +1,50 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID n
+      Declaracao int
+        ID i
+      Declaracao int
+        ID fatorial
+        Int 1
+      Printf Digite um numero inteiro positivo:
+      Scanf %d
+        ID n
+      If
+        Op <
+          ID n
+          Int 0
+        Bloco
+          Printf Erro! Fatorial de numero negativo nao existe.\n
+        Bloco
+          For
+            Atribuicao
+              ID i
+              Int 1
+            Op <=
+              ID i
+              ID n
+            Atribuicao
+              ID i
+              Op +
+                ID i
+                Int 1
+            Bloco
+              Atribuicao
+                ID fatorial
+                Op *
+                  ID fatorial
+                  ID i
+          Printf Fatorial de %d = %d\n
+            ID n
+            ID fatorial
+      Return
+        Int 0
+Digite um numero inteiro positivo: Fatorial de 10 = 3628800
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---
