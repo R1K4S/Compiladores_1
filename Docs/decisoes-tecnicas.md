@@ -148,7 +148,7 @@ Se houver **qualquer** erro léxico, sintático ou semântico, a fase de execuç
 
 **Por quê:** segue o `run_tests.sh` das semanas 07–08 e a dica do guia de manter testes automáticos por fase. A conferência deixou de ser visual ("esperado X, obtido Y"): um único comando diz se algo quebrou. stdout e stderr são capturados **separadamente** porque, juntos (`2>&1`), a ordem das linhas depende do tamanho do buffer do sistema e mudaria entre Linux e macOS.
 
-**Consequência:** a saída inclui a impressão da AST, então os testes também cobrem o parser. Uma mudança intencional na impressão exige rodar `make test-atualizar` e revisar o `git diff`.
+**Consequência:** o `make test` roda o interpretador com `-ast`, então a saída comparada inclui a impressão da AST e os testes também cobrem o parser. Uma mudança intencional na impressão exige rodar `make test-atualizar` e revisar o `git diff`.
 
 ## 3. Registro de problemas e soluções
 

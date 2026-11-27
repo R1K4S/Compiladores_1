@@ -441,18 +441,28 @@ void yyerror(const char *s)
 
 extern FILE* yyin; /* Entrada do Flex: por padrao stdin */
 
-/* Uso: ./build/compilador programa.c   (recomendado: deixa o stdin livre para o scanf)
-        ./build/compilador < programa.c (ainda aceito, mas o scanf nao tera entrada) */
+/* Uso: ./build/compilador [-ast] programa.c
+          -ast  imprime tambem a AST (antes de executar) e as variaveis globais (ao final)
+   Sem arquivo, le o programa do stdin (ai o scanf nao tera entrada). */
 int main(int argc, char** argv)
 {
-    if (argc > 2) {
-        fprintf(stderr, "Uso: %s [arquivo.c]\n", argv[0]);
-        return 1;
+    int mostrar_ast = 0;
+    const char* arquivo = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-ast") == 0) {
+            mostrar_ast = 1;
+        } else if (arquivo == NULL && argv[i][0] != '-') {
+            arquivo = argv[i];
+        } else {
+            fprintf(stderr, "Uso: %s [-ast] [arquivo.c]\n", argv[0]);
+            return 1;
+        }
     }
-    if (argc == 2) {
-        yyin = fopen(argv[1], "r");
+    if (arquivo != NULL) {
+        yyin = fopen(arquivo, "r");
         if (yyin == NULL) {
-            perror(argv[1]);
+            perror(arquivo);
             return 1;
         }
     }
@@ -471,9 +481,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    printf("Analise sintatica concluida com sucesso!\n");
-    imprimir_ast(raiz_ast);
+    if (mostrar_ast) {
+        printf("Analise sintatica concluida com sucesso!\n");
+        imprimir_ast(raiz_ast);
+    }
 
     /* O codigo de saida do processo e o valor retornado por 'main' do programa MiniC */
-    return executar_programa(raiz_ast);
+    return executar_programa(raiz_ast, mostrar_ast);
 }

@@ -40,7 +40,8 @@ O executável é gerado em `build/compilador`.
 ## Rodar
 
 ```bash
-./build/compilador programa.c
+./build/compilador programa.c          # executa o programa
+./build/compilador -ast programa.c     # mostra também a AST e as variáveis globais
 ```
 
 Passe o arquivo como argumento: assim a entrada padrão fica livre para o `scanf` do programa.
@@ -52,10 +53,10 @@ echo "5" | ./build/compilador fatorial.c       # programa que usa scanf
 
 ### O que é impresso
 
-1. `Analise sintatica concluida com sucesso!`
-2. A AST do programa, indentada
-3. A saída do programa MiniC (`printf`)
-4. As variáveis globais ao final da execução
+Por padrão, só a saída do programa MiniC (`printf`). Com a opção `-ast`, aparecem também:
+
+1. `Analise sintatica concluida com sucesso!` e a AST do programa, indentada, antes da execução;
+2. as variáveis globais, ao final da execução.
 
 Erros vão para `stderr`. Se houver **qualquer** erro léxico, sintático ou semântico, o programa **não é executado** e o interpretador termina com código de saída `1`. Sem erros, o código de saída é o valor retornado por `main`.
 
@@ -89,15 +90,9 @@ int main() {
 ```
 
 ```bash
-$ echo "5" | ./build/compilador fatorial.c 2>&1 | grep -v '^  '
-Analise sintatica concluida com sucesso!
-Programa
+$ echo "5" | ./build/compilador fatorial.c
 Digite um numero: Fatorial de 5 = 120
-
-Variaveis globais ao final da execucao:
 ```
-
-(O `grep -v '^  '` esconde as linhas da AST.)
 
 Repare que o `scanf` do MiniC recebe a variável **sem** `&`, pois a linguagem não tem ponteiros.
 

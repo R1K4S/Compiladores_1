@@ -363,7 +363,7 @@ void interpretar_comando(const NoAST* no) {
     }
 }
 
-int executar_programa(const NoAST* raiz) {
+int executar_programa(const NoAST* raiz, int mostrar_globais) {
     ambiente_iniciar();
     registrar_funcoes(raiz);
     interpretar_lista(raiz);
@@ -373,7 +373,9 @@ int executar_programa(const NoAST* raiz) {
     const NoAST* principal = buscar_funcao("main");
     if (principal != NULL) codigo_saida = valor_como_int(executar_funcao(principal, NULL));
 
-    printf("\n");
-    ambiente_imprimir_global();
+    if (mostrar_globais) {
+        printf("\n");
+        ambiente_imprimir_global();
+    }
     return codigo_saida;
 }

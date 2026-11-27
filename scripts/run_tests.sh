@@ -43,7 +43,8 @@ for prog in Testes/*/*.c; do
     [ -f "$entrada" ] || entrada="/dev/null"
 
     # stdout e stderr capturados separadamente: a ordem fica deterministica
-    saida="$("$BIN" "$prog" < "$entrada" 2> "$TMP_ERR")"
+    # -ast: a saida inclui a AST e as globais, entao os testes tambem cobrem o parser
+    saida="$("$BIN" -ast "$prog" < "$entrada" 2> "$TMP_ERR")"
     codigo=$?
     {
         printf '%s\n' "$saida"
