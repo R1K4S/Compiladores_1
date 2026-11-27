@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+extern int total_erros; /* definido em parser.y: erros impedem a execucao */
 %}
 
 %option yylineno
@@ -51,6 +53,9 @@
 "!"                                 { return NOT; }
 "="                                 { return ASSIGN; }
 
+"++"                                { return INC; }
+"--"                                { return DEC; }
+
 "+"                                 { return PLUS; }
 "-"                                 { return MINUS; }
 "*"                                 { return TIMES; }
@@ -67,6 +72,7 @@
 [ \t\n\r]+                          { /* Ignora espacos */ }
 
 .                                   {
+                                        total_erros++;
                                         fprintf(
                                             stderr,
                                             "Caractere invalido: %s\n",

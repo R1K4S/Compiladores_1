@@ -3,9 +3,11 @@
 #include <string.h>
 #include <stdarg.h>
 #include "interpretador.h"
-#include "parser.tab.h"   /* tokens dos operadores (PLUS, ...) e dos tipos (INT, ...) */
+#include "parser.tab.h"
 
-/* Erro de execução: mostra a mensagem e encerra o programa */
+static Valor avaliar_chamada(const NoAST* no);
+static void interpretar_lista(const NoAST* no);
+
 static void erro_execucao(const char* formato, ...) __attribute__((noreturn));
 static void erro_execucao(const char* formato, ...) {
     va_list args;
@@ -25,8 +27,6 @@ static TipoValor tipo_valor_do_token(int token) {
     }
 }
 
-/* ===================== Expressões (#47) ===================== */
-
 static Valor avaliar_unaria(const NoAST* no) {
     Valor v = avaliar_expressao(no->esq);
     switch (no->dado.op) {
@@ -42,7 +42,6 @@ static Valor avaliar_unaria(const NoAST* no) {
 static Valor avaliar_binaria(const NoAST* no) {
     int op = no->dado.op;
 
-    /* && e || só avaliam o lado direito quando necessário (curto-circuito) */
     if (op == AND) {
         if (!valor_verdadeiro(avaliar_expressao(no->esq))) return valor_int(0);
         return valor_int(valor_verdadeiro(avaliar_expressao(no->dir)));
@@ -55,7 +54,6 @@ static Valor avaliar_binaria(const NoAST* no) {
     Valor a = avaliar_expressao(no->esq);
     Valor b = avaliar_expressao(no->dir);
 
-    /* Se algum operando é float, a conta é em float; senão (int/char) é em int */
     if (a.tipo == VAL_FLOAT || b.tipo == VAL_FLOAT) {
         float x = valor_como_float(a), y = valor_como_float(b);
         switch (op) {
@@ -96,8 +94,6 @@ static Valor avaliar_binaria(const NoAST* no) {
     erro_execucao("operador binario desconhecido.");
 }
 
-/* ===================== Atribuição e acesso a variáveis (#48) ===================== */
-
 static Valor avaliar_atribuicao(const NoAST* no) {
     if (no->esq == NULL || no->esq->tipo != NO_ID) {
         erro_execucao("o alvo de uma atribuicao precisa ser uma variavel.");
@@ -107,7 +103,7 @@ static Valor avaliar_atribuicao(const NoAST* no) {
     if (!ambiente_escrever(no->esq->dado.string_val, novo, &gravado)) {
         erro_execucao("variavel '%s' nao declarada.", no->esq->dado.string_val);
     }
-    return gravado;   /* o valor de "x = e" é o valor gravado em x */
+    return gravado;
 }
 
 Valor avaliar_expressao(const NoAST* no) {
@@ -129,26 +125,136 @@ Valor avaliar_expressao(const NoAST* no) {
         case NO_ATRIBUICAO:    return avaliar_atribuicao(no);
         case NO_LITERAL_STRING:
             erro_execucao("strings ainda nao sao suportadas em expressoes.");
-        case NO_CHAMADA:
-            erro_execucao("chamada de funcao ainda nao suportada.");
+        case NO_CHAMADA:       return avaliar_chamada(no);
         default:
             erro_execucao("o no da AST nao e uma expressao.");
     }
 }
 
+/* ===================== Funções (#51) ===================== */
+
+#define PROFUNDIDADE_MAXIMA 1000   /* evita estourar a pilha do C em recursão infinita */
+
+/* Funções definidas no programa: nome -> nó NO_FUNCAO da AST */
+typedef struct FuncaoReg {
+    const NoAST* no;
+    struct FuncaoReg* proximo;
+} FuncaoReg;
+
+static FuncaoReg* funcoes = NULL;
+
+/* Estado da chamada em andamento */
+static const NoAST* funcao_atual = NULL;   /* função sendo executada (NULL = código do topo) */
+static int   retornando = 0;               /* 1 = um 'return' foi executado: desfaz os comandos pendentes */
+static Valor valor_retorno;                /* valor do 'return' */
+static int   profundidade = 0;             /* chamadas aninhadas no momento */
+
+static int contar_nos(const NoAST* lista) {
+    int n = 0;
+    for (; lista != NULL; lista = lista->proximo) n++;
+    return n;
+}
+
+/* Registra todas as funções do topo, para poderem ser chamadas pelo nome */
+static void registrar_funcoes(const NoAST* lista) {
+    while (funcoes != NULL) {
+        FuncaoReg* proximo = funcoes->proximo;
+        free(funcoes);
+        funcoes = proximo;
+    }
+    for (; lista != NULL; lista = lista->proximo) {
+        if (lista->tipo != NO_FUNCAO) continue;
+        FuncaoReg* r = (FuncaoReg*)malloc(sizeof(FuncaoReg));
+        if (!r) erro_execucao("falha na alocacao de memoria.");
+        r->no = lista;
+        r->proximo = funcoes;
+        funcoes = r;
+    }
+}
+
+static const NoAST* buscar_funcao(const char* nome) {
+    for (FuncaoReg* r = funcoes; r != NULL; r = r->proximo) {
+        if (strcmp(r->no->dado.string_val, nome) == 0) return r->no;
+    }
+    return NULL;
+}
+
+/* Executa o corpo de 'f' num ambiente novo, com os argumentos já avaliados (passagem por valor) */
+static Valor executar_funcao(const NoAST* f, const Valor* args) {
+    const char* nome = f->dado.string_val;
+    if (profundidade >= PROFUNDIDADE_MAXIMA) {
+        erro_execucao("limite de recursao excedido em '%s' (%d chamadas aninhadas).",
+                      nome, PROFUNDIDADE_MAXIMA);
+    }
+
+    const NoAST* funcao_anterior = funcao_atual;
+    funcao_atual = f;
+    profundidade++;
+
+    /* Novo escopo-base: só enxerga o global, não as variáveis de quem chamou */
+    ambiente_entrar_funcao();
+
+    /* Cada parâmetro vira uma variável local com uma CÓPIA do argumento, convertida ao tipo declarado */
+    int i = 0;
+    for (const NoAST* p = f->esq; p != NULL; p = p->proximo, i++) {
+        TipoValor tipo = tipo_valor_do_token(p->dado.tipo_dado);
+        ambiente_declarar(p->esq->dado.string_val, converter_valor(args[i], tipo));
+    }
+
+    /* Os comandos do corpo rodam direto no escopo dos parâmetros (como na tabela de símbolos) */
+    retornando = 0;
+    interpretar_lista(f->dir ? f->dir->esq : NULL);
+
+    /* Sem 'return' a função devolve 0 do tipo declarado */
+    Valor resultado = retornando
+        ? valor_retorno
+        : converter_valor(valor_int(0), tipo_valor_do_token(f->tipo_retorno));
+    retornando = 0;
+
+    ambiente_sair_escopo();
+    profundidade--;
+    funcao_atual = funcao_anterior;
+    return resultado;
+}
+
+/* Chamada "f(a, b)": avalia os argumentos no ambiente de quem chama e executa a função */
+static Valor avaliar_chamada(const NoAST* no) {
+    const char* nome = no->dado.string_val;
+    const NoAST* f = buscar_funcao(nome);
+    if (f == NULL) erro_execucao("funcao '%s' nao definida.", nome);
+
+    int n_params = contar_nos(f->esq);
+    int n_args   = contar_nos(no->esq);
+    if (n_params != n_args) {
+        erro_execucao("funcao '%s' espera %d argumento(s), recebeu %d.", nome, n_params, n_args);
+    }
+
+    /* Todos os argumentos são calculados ANTES de entrar no novo ambiente */
+    Valor* args = n_args > 0 ? (Valor*)malloc(n_args * sizeof(Valor)) : NULL;
+    if (n_args > 0 && !args) erro_execucao("falha na alocacao de memoria.");
+    int i = 0;
+    for (const NoAST* a = no->esq; a != NULL; a = a->proximo) {
+        args[i++] = avaliar_expressao(a);
+    }
+
+    Valor resultado = executar_funcao(f, args);
+    free(args);
+    return resultado;
+}
+
 /* ===================== Comandos ===================== */
 
+/* Para assim que um 'return' é executado: os comandos seguintes não rodam */
 static void interpretar_lista(const NoAST* no) {
-    for (; no != NULL; no = no->proximo) {
+    for (; no != NULL && !retornando; no = no->proximo) {
         interpretar_comando(no);
     }
 }
 
 void interpretar_comando(const NoAST* no) {
-    if (no == NULL) return;   /* comando vazio, ex: "if (x) ;" */
+    if (no == NULL) return;
     switch (no->tipo) {
         case NO_DECLARACAO: {
-            /* Sem inicializador, a variável começa com 0 */
             TipoValor tipo = tipo_valor_do_token(no->dado.tipo_dado);
             Valor inicial = no->dir ? avaliar_expressao(no->dir) : valor_int(0);
             ambiente_declarar(no->esq->dado.string_val, converter_valor(inicial, tipo));
@@ -160,7 +266,11 @@ void interpretar_comando(const NoAST* no) {
             ambiente_sair_escopo();
             break;
         case NO_FUNCAO:
-            break;   /* definir uma função não executa nada; chamadas ficam para depois */
+            /* Definicoes de funcao nao executam nada aqui: 'main' (e qualquer outra
+               funcao) so roda via executar_funcao, com seu proprio quadro de chamada.
+               Executar o corpo de 'main' neste ponto fazia o 'return' falhar
+               ("'return' fora de uma funcao") e, sem 'return', 'main' rodava duas vezes. */
+            break;
         case NO_SCANF: {
             const char* formato = no->dado.string_val;
             const char* nome_var = no->esq->dado.string_val;
@@ -188,7 +298,6 @@ void interpretar_comando(const NoAST* no) {
             break;
         }
         case NO_IF:
-            /* esq = condicao, dir = comando do if, centro = comando do else (ou NULL) */
             if (valor_verdadeiro(avaliar_expressao(no->esq))) {
                 interpretar_comando(no->dir);
             } else if (no->centro != NULL) {
@@ -197,21 +306,74 @@ void interpretar_comando(const NoAST* no) {
             break;
         case NO_WHILE:
             /* esq = condicao, dir = corpo; a condicao e reavaliada a cada volta */
-            while (valor_verdadeiro(avaliar_expressao(no->esq))) {
+            while (!retornando && valor_verdadeiro(avaliar_expressao(no->esq))) {
                 interpretar_comando(no->dir);
             }
             break;
+        case NO_FOR:
+            ambiente_entrar_escopo();
+            interpretar_lista(no->esq);
+            while (!retornando && valor_verdadeiro(avaliar_expressao(no->dir))) {
+                interpretar_comando(no->extra);
+                if (retornando) break;   /* 'return' dentro do corpo: nao executa o passo */
+                avaliar_expressao(no->centro);
+            }
+            ambiente_sair_escopo();
+            break;
+        case NO_PRINTF: {
+            const NoAST* arg = no->esq;
+            for (const char* f = no->dado.string_val; *f; f++) {
+                if (*f == '\\' && f[1]) {
+                    f++;
+                    putchar(*f == 'n' ? '\n' : *f == 't' ? '\t' : *f);
+                } else if (*f == '%' && f[1]) {
+                    f++;
+                    if (*f == '%') { putchar('%'); continue; }
+                    if (arg == NULL) erro_execucao("printf: faltam argumentos para o formato.");
+                    if (*f == 's') {
+                        if (arg->tipo != NO_LITERAL_STRING) erro_execucao("printf: %%s exige uma string literal.");
+                        printf("%s", arg->dado.string_val);
+                    } else {
+                        Valor v = avaliar_expressao(arg);
+                        switch (*f) {
+                            case 'd': printf("%d", valor_como_int(v)); break;
+                            case 'f': printf("%f", valor_como_float(v)); break;
+                            case 'c': putchar(valor_como_int(v)); break;
+                            default:  erro_execucao("printf: formato '%%%c' invalido.", *f);
+                        }
+                    }
+                    arg = arg->proximo;
+                } else {
+                    putchar(*f);
+                }
+            }
+            if (arg != NULL) erro_execucao("printf: argumentos demais para o formato.");
+            break;
+        }
         case NO_RETURN:
-            erro_execucao("este comando ainda nao e suportado pelo interpretador.");
+            if (funcao_atual == NULL) erro_execucao("'return' fora de uma funcao.");
+            /* O valor é convertido para o tipo de retorno da função; 'retornando' interrompe o resto */
+            valor_retorno = converter_valor(avaliar_expressao(no->esq),
+                                            tipo_valor_do_token(funcao_atual->tipo_retorno));
+            retornando = 1;
+            break;
         default:
-            avaliar_expressao(no);   /* comando de expressão: "x = x + 1;" */
+            avaliar_expressao(no);
             break;
     }
 }
 
-void executar_programa(const NoAST* raiz) {
+int executar_programa(const NoAST* raiz) {
     ambiente_iniciar();
+    registrar_funcoes(raiz);
     interpretar_lista(raiz);
+
+    /* Depois dos comandos globais, o programa começa em 'main' */
+    int codigo_saida = 0;
+    const NoAST* principal = buscar_funcao("main");
+    if (principal != NULL) codigo_saida = valor_como_int(executar_funcao(principal, NULL));
+
     printf("\n");
     ambiente_imprimir_global();
+    return codigo_saida;
 }
