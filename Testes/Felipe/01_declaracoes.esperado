@@ -1,0 +1,56 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Declaracao int
+    ID a
+    Int 5
+  Declaracao float
+    ID b
+    Float 2.5
+  Declaracao char
+    ID c
+    Char 'A'
+  Declaracao int
+    ID d
+  Declaracao int
+    ID e
+    Int 1
+  Declaracao int
+    ID f
+    Int 2
+  Declaracao int
+    ID g
+  Printf int com valor inicial: %d (esperado 5)\n
+    ID a
+  Printf float com valor inicial: %f (esperado 2.500000)\n
+    ID b
+  Printf char com valor inicial: %c (esperado A)\n
+    ID c
+  Printf int sem valor inicial: %d (esperado 0)\n
+    ID d
+  Atribuicao
+    ID g
+    Op +
+      ID e
+      ID f
+  Printf varias na mesma linha: %d (esperado 3)\n
+    ID g
+  Funcao int main
+    Bloco
+      Return
+        Int 0
+int com valor inicial: 5 (esperado 5)
+float com valor inicial: 2.500000 (esperado 2.500000)
+char com valor inicial: A (esperado A)
+int sem valor inicial: 0 (esperado 0)
+varias na mesma linha: 3 (esperado 3)
+
+Variaveis globais ao final da execucao:
+  a = 5 (int)
+  b = 2.5 (float)
+  c = 'A' (char)
+  d = 0 (int)
+  e = 1 (int)
+  f = 2 (int)
+  g = 3 (int)
+--- stderr ---
+--- exit: 0 ---

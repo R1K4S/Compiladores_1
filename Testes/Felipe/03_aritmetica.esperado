@@ -1,0 +1,82 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Declaracao int
+    ID a
+    Int 10
+  Declaracao int
+    ID b
+    Int 3
+  Printf soma: %d (esperado 13)\n
+    Op +
+      ID a
+      ID b
+  Printf subtracao: %d (esperado 7)\n
+    Op -
+      ID a
+      ID b
+  Printf multiplicacao: %d (esperado 30)\n
+    Op *
+      ID a
+      ID b
+  Printf divisao inteira: %d (esperado 3)\n
+    Op /
+      ID a
+      ID b
+  Printf resto: %d (esperado 1)\n
+    Op %
+      ID a
+      ID b
+  Printf multiplicacao antes da soma: %d (esperado 14)\n
+    Op +
+      Int 2
+      Op *
+        Int 3
+        Int 4
+  Printf parenteses: %d (esperado 20)\n
+    Op *
+      Op +
+        Int 2
+        Int 3
+      Int 4
+  Printf expressao grande: %d (esperado 5)\n
+    Op /
+      Op +
+        Op *
+          Int 3
+          Int 3
+        Op *
+          Int 4
+          Int 4
+      Int 5
+  Printf menos unario: %d (esperado -10)\n
+    OpUnaria -
+      ID a
+  Printf divisao com float: %f (esperado 3.500000)\n
+    Op /
+      Int 7
+      Float 2
+  Printf int com float: %f (esperado 7.000000)\n
+    Op +
+      Int 5
+      Float 2
+  Funcao int main
+    Bloco
+      Return
+        Int 0
+soma: 13 (esperado 13)
+subtracao: 7 (esperado 7)
+multiplicacao: 30 (esperado 30)
+divisao inteira: 3 (esperado 3)
+resto: 1 (esperado 1)
+multiplicacao antes da soma: 14 (esperado 14)
+parenteses: 20 (esperado 20)
+expressao grande: 5 (esperado 5)
+menos unario: -10 (esperado -10)
+divisao com float: 3.500000 (esperado 3.500000)
+int com float: 7.000000 (esperado 7.000000)
+
+Variaveis globais ao final da execucao:
+  a = 10 (int)
+  b = 3 (int)
+--- stderr ---
+--- exit: 0 ---

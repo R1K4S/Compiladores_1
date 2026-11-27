@@ -1,0 +1,106 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID nota1
+        Int 7
+      Declaracao int
+        ID nota2
+        Int 9
+      Declaracao float
+        ID media
+        Op /
+          Op +
+            ID nota1
+            ID nota2
+          Float 2
+      If
+        Op >=
+          ID media
+          Float 6
+        Bloco
+          Printf Aprovado! Media: %f\n
+            ID media
+        Bloco
+          Printf Reprovado! Media: %f\n
+            ID media
+      Declaracao int
+        ID i
+      For
+        Atribuicao
+          ID i
+          Int 0
+        Op <
+          ID i
+          Int 3
+        Atribuicao
+          ID i
+          Op +
+            ID i
+            Int 1
+        Bloco
+          Printf Repeticao numero %d\n
+            ID i
+      Declaracao int
+        ID contador
+        Int 0
+      While
+        Op <
+          ID contador
+          Int 2
+        Bloco
+          Printf Contador: %d\n
+            ID contador
+          Atribuicao
+            ID contador
+            Op +
+              ID contador
+              Int 1
+      Declaracao int
+        ID a
+        Int 5
+      Declaracao float
+        ID b
+        Float 2
+      Declaracao float
+        ID c
+        Op +
+          ID a
+          ID b
+      Printf 5 + 2.0 = %f\n
+        ID c
+      Declaracao int
+        ID inteiro
+        Op /
+          Int 5
+          Int 2
+      Declaracao float
+        ID flutuante
+        Op /
+          Int 5
+          Int 2
+      Declaracao float
+        ID flutuante2
+        Op /
+          Float 5
+          Int 2
+      Printf 5/2 int=%d  5/2 float=%f  5.0/2=%f\n
+        ID inteiro
+        ID flutuante
+        ID flutuante2
+      Return
+        Int 0
+Aprovado! Media: 8.000000
+Repeticao numero 0
+Repeticao numero 1
+Repeticao numero 2
+Contador: 0
+Contador: 1
+5 + 2.0 = 7.000000
+5/2 int=2  5/2 float=2.000000  5.0/2=2.500000
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

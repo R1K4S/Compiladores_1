@@ -115,17 +115,12 @@ Fora do escopo: vetores, ponteiros, `struct`, strings em variáveis, `switch`, `
 ## Rodar os testes
 
 ```bash
-for f in Testes/*/*.c; do
-  echo "=== $f"
-  ./build/compilador "$f" < /dev/null 2>&1 | grep -v '^  '
-done
+make test
 ```
 
-O teste com `scanf` precisa de entrada:
+Cada `Testes/<pasta>/<teste>.c` é executado e comparado, via `diff`, com o arquivo `<teste>.esperado` ao lado. A comparação inclui stdout, stderr e o código de saída. Se existir `<teste>.in`, ele é usado como entrada do `scanf`. O comando termina com `Resultado: N passaram, 0 falharam.` e sai com código 1 se algum teste falhar, mostrando o diff.
 
-```bash
-echo "42 3.14 A" | ./build/compilador Testes/Gustavo/07_scanf.c
-```
+Para criar um teste novo, coloque o `.c` (e o `.in`, se precisar) em `Testes/<pasta>/` e rode `make test-atualizar`. Esse comando regrava **todos** os `.esperado` com a saída atual, então confira com `git diff Testes/` antes de commitar.
 
 ## Estrutura
 

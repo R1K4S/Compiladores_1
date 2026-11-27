@@ -1,0 +1,32 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID n
+      Declaracao float
+        ID f
+      Declaracao char
+        ID c
+      Scanf %d
+        ID n
+      Printf inteiro lido: %d\n
+        ID n
+      Scanf %f
+        ID f
+      Printf float lido: %f\n
+        ID f
+      Scanf %c
+        ID c
+      Printf char lido: %c\n
+        ID c
+      Return
+        Int 0
+inteiro lido: 42
+float lido: 3.140000
+char lido: A
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

@@ -1,0 +1,106 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID i
+        Int 0
+      While
+        Op <
+          ID i
+          Int 5
+        Bloco
+          Printf %d\n
+            ID i
+          Atribuicao
+            ID i
+            Op +
+              ID i
+              Int 1
+      Declaracao int
+        ID j
+        Int 10
+      While
+        Op <
+          ID j
+          Int 5
+        Bloco
+          Printf nao deveria imprimir\n
+          Atribuicao
+            ID j
+            Op +
+              ID j
+              Int 1
+      Printf while zero vezes ok\n
+      Declaracao int
+        ID lin
+        Int 0
+      While
+        Op <
+          ID lin
+          Int 2
+        Bloco
+          Declaracao int
+            ID col
+            Int 0
+          While
+            Op <
+              ID col
+              Int 3
+            Bloco
+              Printf lin=%d col=%d\n
+                ID lin
+                ID col
+              Atribuicao
+                ID col
+                Op +
+                  ID col
+                  Int 1
+          Atribuicao
+            ID lin
+            Op +
+              ID lin
+              Int 1
+      Declaracao int
+        ID soma
+        Int 0
+      Declaracao int
+        ID k
+        Int 1
+      While
+        Op <=
+          ID k
+          Int 10
+        Bloco
+          Atribuicao
+            ID soma
+            Op +
+              ID soma
+              ID k
+          Atribuicao
+            ID k
+            Op +
+              ID k
+              Int 1
+      Printf soma 1..10 esperado: 55  obtido: %d\n
+        ID soma
+      Return
+        Int 0
+0
+1
+2
+3
+4
+while zero vezes ok
+lin=0 col=0
+lin=0 col=1
+lin=0 col=2
+lin=1 col=0
+lin=1 col=1
+lin=1 col=2
+soma 1..10 esperado: 55  obtido: 55
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

@@ -1,0 +1,16 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Declaracao int
+    ID x
+    Op +
+      Int 2
+      Int 3
+  Funcao int main
+    Bloco
+      Return
+        Int 0
+
+Variaveis globais ao final da execucao:
+  x = 5 (int)
+--- stderr ---
+--- exit: 0 ---

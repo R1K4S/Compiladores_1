@@ -31,7 +31,7 @@ INTERP_O   := $(BUILD_DIR)/interpretador.o
 
 TARGET     := $(BUILD_DIR)/compilador
 
-.PHONY: all clean run
+.PHONY: all clean run test test-atualizar
 
 all: $(TARGET)
 
@@ -72,6 +72,12 @@ $(BUILD_DIR):
 
 run: all
 	./$(TARGET)
+
+# Testes automatizados: compara cada Testes/*/*.c com o seu .esperado
+test: all ; @bash scripts/run_tests.sh
+
+# Regrava os .esperado com a saida atual (use so depois de conferir a mudanca)
+test-atualizar: all ; @bash scripts/run_tests.sh --atualizar
 
 clean:
 	rm -rf $(BUILD_DIR)

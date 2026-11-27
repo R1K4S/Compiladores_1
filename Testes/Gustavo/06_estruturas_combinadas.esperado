@@ -1,0 +1,138 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int main
+    Bloco
+      Printf pares de 0 a 9:\n
+      For
+        Declaracao int
+          ID i
+          Int 0
+        Op <
+          ID i
+          Int 10
+        Atribuicao
+          ID i
+          Op +
+            ID i
+            Int 1
+        Bloco
+          If
+            Op ==
+              Op %
+                ID i
+                Int 2
+              Int 0
+            Bloco
+              Printf %d\n
+                ID i
+      Declaracao int
+        ID limite
+        Int 20
+      Declaracao int
+        ID encontrado
+        Int 0
+      Declaracao int
+        ID n
+        Int 1
+      While
+        Op ==
+          ID encontrado
+          Int 0
+        Bloco
+          If
+            Op >
+              Op *
+                ID n
+                ID n
+              ID limite
+            Bloco
+              Atribuicao
+                ID encontrado
+                ID n
+          Atribuicao
+            ID n
+            Op +
+              ID n
+              Int 1
+      Printf primeiro n com n*n > 20: esperado 5  obtido: %d\n
+        ID encontrado
+      Printf classifica 1 a 5:\n
+      Declaracao int
+        ID m
+        Int 1
+      While
+        Op <=
+          ID m
+          Int 5
+        Bloco
+          If
+            Op ==
+              Op %
+                ID m
+                Int 2
+              Int 0
+            Bloco
+              Printf %d par\n
+                ID m
+            Bloco
+              Printf %d impar\n
+                ID m
+          Atribuicao
+            ID m
+            Op +
+              ID m
+              Int 1
+      Declaracao int
+        ID total
+        Int 0
+      For
+        Declaracao int
+          ID k
+          Int 1
+        Op <=
+          ID k
+          Int 4
+        Atribuicao
+          ID k
+          Op +
+            ID k
+            Int 1
+        Bloco
+          If
+            Op >
+              ID k
+              Int 2
+            Bloco
+              Declaracao int
+                ID extra
+                Op *
+                  ID k
+                  Int 10
+              Atribuicao
+                ID total
+                Op +
+                  ID total
+                  ID extra
+      Printf total (3*10 + 4*10): esperado 70  obtido: %d\n
+        ID total
+      Return
+        Int 0
+pares de 0 a 9:
+0
+2
+4
+6
+8
+primeiro n com n*n > 20: esperado 5  obtido: 5
+classifica 1 a 5:
+1 impar
+2 par
+3 impar
+4 par
+5 impar
+total (3*10 + 4*10): esperado 70  obtido: 70
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---
