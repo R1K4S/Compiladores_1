@@ -29,7 +29,7 @@ Palavras-chave têm prioridade sobre `ID` (regras declaradas antes). Literais `f
 
 ## 2. Regras (parser/parser.y)
 
-``````````yacc
+```yacc
 programa         : lista_itens ;
 
 lista_itens      : lista_itens item
@@ -93,7 +93,7 @@ argumentos_opt   : /* vazio */
                  | lista_argumentos ;
 lista_argumentos : expressao
                  | lista_argumentos COMMA expressao ;
-``````````
+```
 
 Por simplicidade de leitura, foram omitidas acima as regras auxiliares sem símbolos próprios: `bloco_inicio: LBRACE` / `bloco_fim: RBRACE` e `for_inicio: FOR`. Elas existem só para abrir e fechar escopos na tabela de símbolos no momento certo do parse.
 
@@ -129,9 +129,9 @@ A regra única `expressao` do Bison aceita mais do que a EBNF permite. O exceden
 
 `%define parse.error verbose` faz o Bison informar o token encontrado e os esperados, por exemplo:
 
-``````````text
+```text
 Erro sintático na linha 1: syntax error, unexpected SEMI
 Erro sintático na linha 1: syntax error, unexpected NUM, expecting SEMI or COMMA
-``````````
+```
 
 Ainda não há recuperação de erros (regras com o token `error`): a análise para no primeiro erro sintático.

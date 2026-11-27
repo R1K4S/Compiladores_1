@@ -1,4 +1,6 @@
-# Especificação da Linguagem MiniC (V1)
+# Especificação da Linguagem MiniC (V1.1)
+
+> **V1.1 — alinhada à implementação.** A V1 proibia algumas construções que o interpretador já aceita. Em vez de remover recursos funcionando, a V1.1 os oficializa: comandos e variáveis no nível do programa (globais), `++`/`--`, atribuição encadeada, sombreamento de variáveis e `char` em expressões aritméticas. Também passa a valer que programas com erro **não são executados**. Cada mudança está marcada no texto com **(V1.1)**.
 
 > Este documento define, de forma completa e autocontida, a sintaxe e a semântica da linguagem **MiniC** — um subconjunto de C projetado para ser interpretado. Ele foi escrito para ser lido por qualquer pessoa com conhecimento de compiladores, mesmo sem contato prévio com o projeto: todo termo específico do MiniC é definido antes de ser usado, e cada construção vem acompanhada de exemplo, gramática e, quando relevante, do erro que ela deve produzir se usada incorretamente.
 
@@ -17,13 +19,26 @@ Antes de entrar em cada construção em detalhe, um resumo do que compõe um pro
 | Palavras-chave | `int`, `float`, `char`, `if`, `else`, `while`, `for`, `return` |
 | Identificadores | `x`, `contador`, `calcularMedia` |
 | Literais | `10`, `9.5`, `'A'`, `"Olá"` |
-| Operadores | `+ - * / % == != < > <= >= && || ! =` |
+| Operadores | `+ - * / % == != < > <= >= && || ! = ++ --` |
 | Pontuação | `; , ( ) { }` |
 | Comentários | `// ...` e `/* ... */` (descartados na análise léxica) |
 
-MiniC é, estruturalmente, uma sequência de **definições de função**, sendo obrigatória a presença de `int main()` como ponto de entrada. Não existem instruções soltas no nível de programa fora de uma função assim como em C.
+MiniC é, estruturalmente, uma sequência de **definições de função**, **declarações de variável** e **comandos**, sendo obrigatória a presença de `int main()` como ponto de entrada.
 
-> **Sem variáveis globais na V1:** a gramática do MiniC (Seção 13) só permite `definicao_funcao` no nível de programa — não existe uma regra para declarar variável fora de uma função. Ou seja, **toda variável do MiniC vive dentro de alguma função ou bloco**; não há estado compartilhado global. Essa restrição elimina, de saída, a necessidade de um escopo global especial na tabela de símbolos.
+> **Nível do programa (V1.1):** fora das funções podem aparecer declarações de variável e comandos. Eles são executados **em ordem, antes de `main`**. As variáveis declaradas ali são **globais**: ficam no escopo global e são visíveis em todas as funções definidas depois delas. Diferente de C, comandos soltos (como `printf(...)`) também são aceitos nesse nível.
+
+```c
+int limite = 3;                 // variável global
+
+int dentro(int x) {
+    return x <= limite;         // funções enxergam a global
+}
+
+int main() {
+    printf("%d\n", dentro(2));  // 1
+    return 0;
+}
+```
 
 ```c
 // Estrutura mínima de um programa MiniC válido
@@ -57,10 +72,15 @@ char letra = 'A';
 
 **Gramática (EBNF) desta construção:**
 
+Várias variáveis do mesmo tipo podem ser declaradas de uma vez: `int a, b = 1, c;`.
+
 ```ebnf
-declaracao_variavel ::= tipo IDENTIFICADOR [ "=" expressao ] ";"
+declaracao_variavel ::= tipo item_declaracao { "," item_declaracao } ";"
+item_declaracao     ::= IDENTIFICADOR [ "=" expressao ]
 tipo                ::= "int" | "float" | "char"
 ```
+
+Uma variável declarada sem inicialização começa com valor `0` (ou `0.0`, ou o caractere de código 0).
 
 ### 3.2 Escopo
 
@@ -69,7 +89,20 @@ O MiniC usa **escopo léxico (estático)**: a visibilidade de uma variável é d
 Regras:
 - Um bloco interno **enxerga** as variáveis dos blocos que o envolvem (escopo pai), desde que estejam visíveis naquele ponto.
 - Uma variável declarada em um bloco **deixa de existir** assim que esse bloco termina (`}`).
-- Na V1, **não é permitido** redeclarar um nome já usado em um escopo aninhado dentro do mesmo escopo — ou seja, sombreamento (*shadowing*) de variáveis não é suportado.
+- Um nome **não pode** ser declarado duas vezes no **mesmo** escopo (erro semântico).
+- **(V1.1)** Um bloco interno **pode** declarar uma variável com o mesmo nome de uma variável de um bloco externo (sombreamento, ou *shadowing*), como em C. Dentro do bloco interno, o nome se refere à variável interna; ao sair dele, a externa volta a ser visível com o valor que tinha.
+
+```c
+int x = 1;
+{
+    int x = 10;        // válido: sombreia o x de fora
+    printf("%d", x);   // 10
+}
+printf("%d", x);       // 1
+```
+
+- Corpos de função não abrem um escopo extra: um parâmetro e uma variável local de mesmo nome na mesma função são uma redeclaração (erro).
+- A variável declarada na inicialização de um `for` existe apenas dentro do laço (Seção 7.3).
 
 ```c
 int main() {
@@ -113,10 +146,11 @@ int y = 20;
 | Relacionais | `==  !=  <  >  <=  >=` | sempre `int` (`0` ou `1`) |
 | Lógicos | `&&  \|\|  !` | sempre `int` (`0` ou `1`) |
 | Atribuição | `=` | tipo da variável atribuída |
+| Incremento / decremento **(V1.1)** | `++  --` | tipo da variável |
 
 ### 5.2 Aritméticos
 
-`+`, `-`, `*` e `/` operam sobre `int` e `float` (com conversão automática — ver Seção 6). O operador `%` (resto da divisão inteira) é permitido **somente** entre dois valores `int`.
+`+`, `-`, `*` e `/` operam sobre `int` e `float` (com conversão automática — ver Seção 6). O operador `%` (resto da divisão inteira) é permitido **somente** entre dois valores `int`; com `float` gera erro de execução. Divisão ou resto por zero também geram erro de execução.
 
 ```c
 int a = 10;
@@ -144,17 +178,34 @@ int aprovado = (nota >= 6.0) && (faltas <= 10);
 
 ### 5.5 Atribuição
 
-Apenas a atribuição simples `=` é suportada, e **a atribuição não é encadeável**: `a = b = 10;`, válido em C, **não é permitido** no MiniC V1 (é um erro sintático). Cada atribuição é tratada como uma unidade independente — decisão que simplifica a gramática e evita ambiguidade sobre se atribuição é "expressão" (que pode ser aninhada em qualquer lugar) ou apenas um tipo de comando.
+Apenas a atribuição simples `=` é suportada (sem `+=`, `-=` etc.). **(V1.1)** Como em C, a atribuição é uma **expressão**: seu valor é o valor gravado na variável (já convertido para o tipo dela). Por isso ela pode ser encadeada, com associatividade à direita, e usada dentro de outras expressões.
 
 ```c
 int x = 10;
-x = 20;      // válido
+x = 20;              // válido
 
 int a, b;
-a = b = 10;  // NÃO permitido na V1 — erro sintático
+a = b = 10;          // válido (V1.1): b recebe 10, depois a recebe 10
+
+int d;
+int e = (d = 4) + 1; // d = 4, e = 5
 ```
 
-### 5.6 Precedência e associatividade
+O lado esquerdo de `=` precisa ser uma variável. Algo como `5 = x;` é reconhecido pelo parser, mas é rejeitado com erro de execução.
+
+### 5.6 Incremento e decremento (V1.1)
+
+`x++`, `++x`, `x--` e `--x` são abreviações de `x = x + 1` e `x = x - 1`. Valem para variáveis `int` e `float`.
+
+**Atenção, diferença em relação ao C:** no MiniC as quatro formas devolvem o valor **já atualizado**. Em `int y = x++;`, `y` recebe o valor novo de `x`, e não o antigo. Usadas como comando isolado (`i++;`) ou no passo de um `for`, as quatro formas têm o mesmo efeito que em C.
+
+```c
+int i = 5;
+i++;                 // i = 6
+for (i = 0; i < 3; i++) { printf("%d ", i); }   // 0 1 2
+```
+
+### 5.7 Precedência e associatividade
 
 A tabela abaixo resume a precedência (da mais alta para a mais baixa) e é o que deve orientar diretamente as declarações `%left`/`%right` no arquivo `parser.y`:
 
@@ -169,13 +220,15 @@ A tabela abaixo resume a precedência (da mais alta para a mais baixa) e é o qu
 | 7 | `\|\|` | esquerda |
 | 8 (mais baixa) | `=` | direita |
 
-### 5.7 Fora de escopo na V1
+`++` e `--` só se aplicam diretamente a um identificador (`i++`, `--i`), então não entram nesta tabela.
 
-Os seguintes operadores **não existem** no MiniC V1 e seu uso deve gerar erro léxico ou sintático: `+=`, `-=`, `*=`, `/=`, `++`, `--`, `?:` (operador ternário).
+### 5.8 Fora de escopo
+
+Os seguintes operadores **não existem** no MiniC e seu uso gera erro léxico ou sintático: `+=`, `-=`, `*=`, `/=`, `?:` (operador ternário).
 
 ## 6. Conversão de Tipos
 
-O MiniC define conversões **apenas** entre `int` e `float`; não há conversão implícita envolvendo `char`.
+O MiniC define conversões implícitas **apenas** entre `int` e `float`. Um valor `char` nunca é convertido implicitamente em atribuição, inicialização, argumento ou `return`, mas **(V1.1)** pode participar de expressões aritméticas (Seção 6.2).
 
 ### 6.1 Conversão em atribuição/inicialização
 
@@ -183,16 +236,25 @@ O MiniC define conversões **apenas** entre `int` e `float`; não há conversão
 |---|---|---|---|
 | `int` | `float` | Conversão exata (nenhuma perda) | `int x = 10; float y = x;` → `y = 10.0` |
 | `float` | `int` | Trunca a parte fracionária (não arredonda) | `float x = 10.8; int y = x;` → `y = 10` |
-| `char` | `int`/`float` | **Não permitido** na V1 | `int x = 'A';` → erro semântico |
-| `int`/`float` | `char` | **Não permitido** na V1 | `char c = 10;` → erro semântico |
+| `char` | `int`/`float` | **Não permitido** | `int x = 'A';` → erro semântico |
+| `int`/`float` | `char` | **Não permitido** | `char c = 10;` → erro semântico |
 
 ### 6.2 Promoção de tipos dentro de uma expressão aritmética
 
-Esta regra resolve o tipo resultante de `+`, `-`, `*` e `/` **antes** de qualquer conversão de atribuição ser aplicada:
+Esta regra resolve o tipo resultante de `+`, `-`, `*`, `/` e `%` **antes** de qualquer conversão de atribuição ser aplicada:
 
 - Se **ambos os operandos são `int`**, o resultado é `int`. Em particular, `/` entre dois `int` é **divisão inteira** (trunca o resultado), independentemente do tipo da variável que vai receber o valor.
 - Se **pelo menos um operando é `float`**, o outro é promovido para `float` e o resultado da operação é `float`.
-- `char` nunca participa de expressão aritmética diretamente (ver Seção 6.1) — logo não entra nesta regra.
+- **(V1.1)** Um operando `char` entra na conta com o seu código (por exemplo, `'A'` vale 65) e é tratado como `int`. Assim, `char + int` e `char + char` resultam em `int`, e `char + float` resulta em `float`.
+- O menos unário preserva o tipo do operando.
+
+```c
+char c = 'A';
+int codigo = c + 0;   // válido: 65
+int prox = c + 1;     // válido: 66
+int x = c;            // ERRO semântico: char não converte para int (Seção 6.1)
+char d = c + 1;       // ERRO semântico: o resultado é int, e int não converte para char
+```
 
 ```c
 int a = 5;
@@ -209,10 +271,14 @@ O último par de exemplos (`y` e `z`) é intencional: reforça que a regra de pr
 
 ## 7. Estruturas de Controle
 
+**(V1.1)** O corpo de `if`, `else`, `while` e `for` é um **comando qualquer**: um bloco `{ ... }` ou um único comando sem chaves, como em C (`if (x > 0) x = 0;`). Usar chaves continua sendo o recomendado. Um `else` pertence sempre ao `if` mais próximo que ainda não tem `else`.
+
+**Limitação atual:** um bloco precisa ter **pelo menos um comando**. `{ }` vazio, inclusive como corpo de função, é erro sintático.
+
 ### 7.1 `if` e `if-else`
 
 ```ebnf
-comando_if ::= "if" "(" expressao ")" bloco [ "else" ( bloco | comando_if ) ]
+comando_if ::= "if" "(" expressao ")" comando [ "else" comando ]
 ```
 
 ```c
@@ -232,7 +298,7 @@ A condição pode ser qualquer expressão cujo valor seja tratável como boolean
 ### 7.2 Laço `while`
 
 ```ebnf
-comando_while ::= "while" "(" expressao ")" bloco
+comando_while ::= "while" "(" expressao ")" comando
 ```
 
 ```c
@@ -247,10 +313,10 @@ while (i < 5) {
 ### 7.3 Laço `for`
 
 ```ebnf
-comando_for ::= "for" "(" declaracao_ou_expressao ";" expressao ";" expressao ")" bloco
+comando_for ::= "for" "(" ( declaracao_variavel | expressao ";" ) expressao ";" expressao ")" comando
 ```
 
-Na V1, **os três componentes do `for` são obrigatórios** — não existe `for (;;)`.
+**Os três componentes do `for` são obrigatórios**: não existe `for (;;)`. Uma variável declarada na inicialização (`for (int i = 0; ...)`) só existe dentro do laço.
 
 ```c
 for (int i = 0; i < 10; i = i + 1) {
@@ -258,9 +324,9 @@ for (int i = 0; i < 10; i = i + 1) {
 }
 ```
 
-### 7.4 Fora de escopo na V1
+### 7.4 Fora de escopo
 
-`switch`, `do-while`, `break` e `continue` não existem no MiniC V1. Um laço só pode terminar naturalmente pela condição se tornar falsa.
+`switch`, `do-while`, `break` e `continue` não existem no MiniC. Um laço só pode terminar naturalmente pela condição se tornar falsa.
 
 ## 8. Funções
 
@@ -283,7 +349,9 @@ Parâmetros são passados **por valor**: a função recebe uma cópia, e alterá
 
 ### 8.2 Tipos de retorno e `return`
 
-Uma função pode retornar `int`, `float` ou `char`. Se a função declara um tipo de retorno, ela **deve** executar um `return` com uma expressão compatível com esse tipo — `return;` sem expressão não é permitido na V1.
+Uma função pode retornar `int`, `float` ou `char` (não existe `void`). Ela **deve** executar um `return` com uma expressão compatível com esse tipo; `return;` sem expressão não é permitido. O valor retornado é convertido para o tipo de retorno declarado (por exemplo, `return 3.9;` numa função `int` devolve `3`).
+
+**Limitação atual:** a ausência de `return` ainda não é detectada (Seção 11, item 7). Uma função que termina sem executar `return` devolve `0` do seu tipo.
 
 ```c
 float calcularMedia(float a, float b) {
@@ -299,9 +367,11 @@ int total = somar(5, 7);
 
 O número de argumentos na chamada deve ser **exatamente igual** ao número de parâmetros na definição, e cada argumento deve ter tipo compatível com o parâmetro correspondente (mesmas regras de conversão da Seção 6).
 
+**A função precisa estar definida antes (acima) do ponto onde é chamada.** A análise semântica é feita numa única passada durante o parse, então chamar uma função definida mais abaixo no arquivo é erro semântico (`funcao '...' nao declarada`). Como não há protótipos, isso também impede a recursão mútua (Seção 8.4).
+
 ### 8.4 Recursão
 
-**Recursão é permitida** no MiniC V1: uma função pode chamar a si mesma, direta ou indiretamente. Isso não exige nenhuma regra semântica adicional além das já definidas — decorre naturalmente do modelo de execução: cada chamada de função cria um novo ambiente de execução (um novo conjunto de variáveis locais e parâmetros) empilhado sobre o ambiente do chamador (ver Seção 8.1). Enquanto essa pilha de ambientes existir, chamadas recursivas funcionam sem tratamento especial.
+**Recursão direta é permitida**: uma função pode chamar a si mesma. Recursão **mútua** (`a` chama `b`, que chama `a`) não é possível, porque uma das duas teria de ser chamada antes de ser definida (Seção 8.3). O interpretador limita a profundidade a **1.000 chamadas aninhadas**; acima disso, gera erro de execução. Isso não exige nenhuma regra semântica adicional além das já definidas — decorre naturalmente do modelo de execução: cada chamada de função cria um novo ambiente de execução (um novo conjunto de variáveis locais e parâmetros) empilhado sobre o ambiente do chamador (ver Seção 8.1). Enquanto essa pilha de ambientes existir, chamadas recursivas funcionam sem tratamento especial.
 
 ```c
 int fatorial(int n) {
@@ -323,7 +393,7 @@ int main() {
 }
 ```
 
-`main` é o ponto de entrada da execução — é a primeira (e, na prática, geralmente a única) função chamada diretamente pelo interpretador, e todas as demais funções do programa são alcançadas a partir dela.
+`main` não recebe parâmetros e precisa retornar `int`; outra assinatura é erro semântico. É o ponto de entrada: o interpretador executa primeiro os comandos do nível do programa (Seção 2), na ordem em que aparecem, e depois chama `main`. Todas as demais funções são alcançadas a partir dela. O valor retornado por `main` vira o **código de saída** do interpretador.
 
 ## 9. Entrada e Saída
 
@@ -351,6 +421,8 @@ printf("%s\n", "Olá");
 
 Strings só existem como **literais** usados diretamente em uma chamada de `printf` — não há tipo string nem variáveis do tipo string no MiniC (Seção 10).
 
+Também são reconhecidos `%%` (imprime `%`) e as sequências `\n` (nova linha) e `\t` (tabulação) na string de formato. Não há largura nem precisão: `%.2f` e `%5d` geram erro de execução. O tipo do argumento **não é verificado** contra o especificador. O valor é convertido: `%d` com um `float` trunca, e `%f` com um `int` imprime com casas decimais. Argumentos a mais ou a menos que os especificadores geram erro de execução.
+
 ### 9.2 Entrada — `scanf`
 
 Diferente do C, o `scanf` do MiniC recebe a variável **diretamente**, sem o operador `&` (que não existe na linguagem, já que não há ponteiros):
@@ -362,7 +434,7 @@ printf("Digite sua idade: ");
 scanf("%d", idade);
 ```
 
-Especificadores suportados na entrada: `%d`, `%f`, `%c`. **`%s` não é suportado para entrada** na V1 (não haveria onde guardar a string lida, já que não existem variáveis do tipo string nem arrays de `char`).
+Cada `scanf` lê **um** valor, e o formato deve ser exatamente `"%d"`, `"%f"` ou `"%c"`. O tipo da variável deve ser **exatamente** o do especificador (`%d` → `int`, `%f` → `float`, `%c` → `char`), sem conversão; o contrário é erro semântico. `%c` ignora espaços e quebras de linha antes do caractere. **`%s` não é suportado para entrada** (não haveria onde guardar a string lida, já que não existem variáveis do tipo string nem arrays de `char`).
 
 ## 10. Strings Literais
 
@@ -372,11 +444,15 @@ Strings existem **apenas como literais de texto**, usados exclusivamente como ar
 printf("Olá, mundo!\n");
 ```
 
-Não é possível declarar uma variável do tipo string, nem armazenar uma string em uma variável — isso exigiria arrays de `char` (ou ponteiros), ambos fora de escopo na V1.
+Não é possível declarar uma variável do tipo string, nem armazenar uma string em uma variável — isso exigiria arrays de `char` (ou ponteiros), ambos fora de escopo.
 
 ## 11. Regras Semânticas e Catálogo de Erros
 
-O interpretador deve detectar e rejeitar, antes da execução, qualquer programa que viole as regras abaixo. Este catálogo serve diretamente de referência para os testes/validações manuais do analisador semântico.
+O interpretador detecta e rejeita, **antes da execução**, qualquer programa que viole as regras abaixo. O mesmo vale para erros léxicos (caractere inválido) e sintáticos. Todos os erros encontrados são listados em `stderr`, seguidos de `N erro(s) encontrado(s). O programa nao foi executado.`, e o interpretador termina com código de saída `1`. Nenhum comando do programa é executado.
+
+Erros que só podem ser detectados durante a execução (divisão ou resto por zero, `%` com `float`, recursão acima do limite, formato inválido no `printf`, falha de leitura no `scanf`) interrompem o programa com `Erro de execucao: ...` e código de saída `1`.
+
+Este catálogo serve de referência para os testes do analisador semântico.
 
 | # | Regra violada | Exemplo | Resultado esperado | Status |
 |---|---|---|---|---|
@@ -386,59 +462,70 @@ O interpretador deve detectar e rejeitar, antes da execução, qualquer programa
 | 4 | Número incorreto de argumentos em chamada de função | `soma(int a,int b){...}` chamada como `soma(10);` | Erro semântico | ✅ Implementado |
 | 5 | Tipo incompatível em atribuição/inicialização | `char c = 10.5;` | Erro semântico | ✅ Implementado |
 | 6 | Ausência da função `int main()` | Programa sem `main` | Erro semântico | ✅ Implementado |
-| 7 | `return` ausente em função com tipo de retorno, ou com tipo incompatível | Função `int` que não executa `return`, ou que retorna um `float` incompatível | Erro semântico | ⚠️ Parcial: tipo incompatível é verificado; ausência de `return` em algum caminho ainda não |
+| 7 | `return` ausente em função com tipo de retorno, ou com tipo incompatível | Função `int` que não executa `return`, ou que retorna um `char` | Erro semântico | ⚠️ Parcial: tipo incompatível é verificado; ausência de `return` em algum caminho ainda não |
+| 8 | Argumento de tipo incompatível | `letra(10)` com parâmetro `char` | Erro semântico | ✅ Implementado |
+| 9 | Chamada de algo que não é função, ou de função não declarada (ou declarada abaixo) | `int n; n(1);` | Erro semântico | ✅ Implementado |
+| 10 | Função ou parâmetro redeclarado | `int f(int a, int a)` | Erro semântico | ✅ Implementado |
+| 11 | `main` com assinatura diferente de `int main()` | `float main(int x)` | Erro semântico | ✅ Implementado |
+| 12 | `return` fora de função | `return 0;` no nível do programa | Erro semântico | ✅ Implementado |
+| 13 | `scanf` com formato inválido ou tipo diferente do especificador | `scanf("%d", f)` com `f` float | Erro semântico | ✅ Implementado |
+| 14 | String literal em operação | `1 + "a"`, `!"a"` | Erro semântico | ✅ Implementado |
 
-## 12. Recursos Fora de Escopo (V1)
+## 12. Recursos Fora de Escopo
 
-Os itens abaixo **não existem** no MiniC V1. Seu uso deve ser rejeitado pelo analisador léxico, sintático ou semântico, conforme o caso — nunca silenciosamente ignorado.
+Os itens abaixo **não existem** no MiniC. Seu uso deve ser rejeitado pelo analisador léxico, sintático ou semântico, conforme o caso — nunca silenciosamente ignorado.
 
 | Categoria | Recursos excluídos |
 |---|---|
 | Memória e tipos compostos | ponteiros, aritmética de ponteiros, arrays, `struct`, `union`, `enum`, `typedef`, `malloc`, `free` |
 | Pré-processador | macros, `#include`, `#define`, diretivas em geral |
 | Controle de fluxo | `switch`, `do-while`, `break`, `continue`, operador ternário `?:` |
-| Operadores | `++`, `--`, atribuições compostas (`+=`, `-=`, `*=`, `/=`) |
+| Operadores | atribuições compostas (`+=`, `-=`, `*=`, `/=`) |
 | Dados | strings armazenadas em variáveis |
 
-Esses itens compõem o **backlog de expansão** do projeto (fora desta especificação V1) e só devem ser considerados depois que o núcleo aqui descrito estiver implementado e validado por completo.
+Esses itens compõem o **backlog de expansão** do projeto (fora desta especificação) e só devem ser considerados depois que o núcleo aqui descrito estiver implementado e validado por completo.
 
 ## 13. Gramática Formal Consolidada (EBNF)
 
-Esta seção reúne, em um único lugar, todas as regras gramaticais apresentadas ao longo do documento — útil como referência direta na hora de escrever o `parser.y`.
+Esta seção reúne, em um único lugar, todas as regras gramaticais apresentadas ao longo do documento, já com as mudanças da V1.1.
 
 ```ebnf
-programa            ::= { definicao_funcao }
+programa             ::= item { item }
+item                 ::= definicao_funcao
+                       | comando                      (* V1.1: declaracoes e comandos globais *)
 
-definicao_funcao     ::= tipo IDENTIFICADOR "(" [ lista_parametros ] ")" bloco
+definicao_funcao     ::= tipo IDENTIFICADOR "(" [ lista_parametros ] ")" "{" lista_comandos "}"
 lista_parametros     ::= parametro { "," parametro }
 parametro            ::= tipo IDENTIFICADOR
 
-bloco                ::= "{" { declaracao | comando } "}"
+lista_comandos       ::= comando { comando }          (* pelo menos 1 comando *)
+bloco                ::= "{" lista_comandos "}"
 
-declaracao_variavel  ::= tipo IDENTIFICADOR [ "=" expressao ] ";"
+declaracao_variavel  ::= tipo item_declaracao { "," item_declaracao } ";"
+item_declaracao      ::= IDENTIFICADOR [ "=" expressao ]
 tipo                 ::= "int" | "float" | "char"
 
 comando              ::= declaracao_variavel
-                        | comando_expressao
-                        | comando_if
-                        | comando_while
-                        | comando_for
-                        | comando_return
-                        | comando_printf
-                        | comando_scanf
-                        | bloco
+                       | expressao ";"
+                       | comando_if
+                       | comando_while
+                       | comando_for
+                       | comando_return
+                       | comando_printf
+                       | comando_scanf
+                       | bloco
 
-comando_expressao    ::= expressao ";"
-comando_if           ::= "if" "(" expressao ")" bloco [ "else" ( bloco | comando_if ) ]
-comando_while        ::= "while" "(" expressao ")" bloco
-comando_for          ::= "for" "(" ( declaracao_variavel | comando_expressao ) expressao ";" expressao ")" bloco
+comando_if           ::= "if" "(" expressao ")" comando [ "else" comando ]
+comando_while        ::= "while" "(" expressao ")" comando
+comando_for          ::= "for" "(" ( declaracao_variavel | expressao ";" )
+                             expressao ";" expressao ")" comando
 comando_return       ::= "return" expressao ";"
-comando_printf       ::= "printf" "(" STRING_LITERAL { "," expressao } ")" ";"
+comando_printf       ::= "printf" "(" STRING_LITERAL [ "," lista_argumentos ] ")" ";"
 comando_scanf        ::= "scanf" "(" STRING_LITERAL "," IDENTIFICADOR ")" ";"
 
 expressao            ::= atribuicao
-atribuicao           ::= IDENTIFICADOR "=" expressao_logica_or
-                        | expressao_logica_or
+atribuicao           ::= IDENTIFICADOR "=" atribuicao  (* V1.1: encadeavel, assoc. a direita *)
+                       | expressao_logica_or
 expressao_logica_or  ::= expressao_logica_and { "||" expressao_logica_and }
 expressao_logica_and ::= expressao_igualdade { "&&" expressao_igualdade }
 expressao_igualdade  ::= expressao_relacional { ( "==" | "!=" ) expressao_relacional }
@@ -447,15 +534,20 @@ expressao_aditiva    ::= expressao_multiplicativa { ( "+" | "-" ) expressao_mult
 expressao_multiplicativa
                      ::= expressao_unaria { ( "*" | "/" | "%" ) expressao_unaria }
 expressao_unaria     ::= ( "!" | "-" ) expressao_unaria
-                        | expressao_primaria
+                       | expressao_primaria
 expressao_primaria   ::= NUMERO_INT
-                        | NUMERO_FLOAT
-                        | CHAR_LITERAL
-                        | IDENTIFICADOR
-                        | IDENTIFICADOR "(" [ lista_argumentos ] ")"
-                        | "(" expressao ")"
+                       | NUMERO_FLOAT
+                       | CHAR_LITERAL
+                       | STRING_LITERAL               (* so como argumento de printf, para %s *)
+                       | IDENTIFICADOR
+                       | IDENTIFICADOR ( "++" | "--" ) (* V1.1 *)
+                       | ( "++" | "--" ) IDENTIFICADOR (* V1.1 *)
+                       | IDENTIFICADOR "(" [ lista_argumentos ] ")"
+                       | "(" expressao ")"
 lista_argumentos     ::= expressao { "," expressao }
 ```
+
+A gramática acima descreve a linguagem aceita. O arquivo `parser.y` a implementa de forma mais compacta: uma única regra `expressao` com declarações `%left`/`%right` (Seção 5.7). Por isso o parser também aceita alvos de atribuição que não são identificadores (`5 = x`), que são rejeitados na execução (Seção 5.5). A correspondência entre esta EBNF e as regras do Bison está em [`gramatica_minic.md`](gramatica_minic.md).
 
 ## 14. Exemplo Completo
 

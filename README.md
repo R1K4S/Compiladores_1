@@ -21,34 +21,34 @@ O interpretador lê um programa MiniC, faz a análise léxica, sintática e sem�
 | `flex` | Gerar o analisador léxico (`lexer/lexel.l`) |
 | `bison` | Gerar o analisador sintático (`parser/parser.y`) |
 
-``````````bash
+```bash
 # Ubuntu / Debian / WSL
 sudo apt update && sudo apt install -y build-essential flex bison
 
 # macOS
 brew install flex bison
-``````````
+```
 
 ## Compilar
 
-``````````bash
+```bash
 make clean && make
-``````````
+```
 
 O executável é gerado em `build/compilador`.
 
 ## Rodar
 
-``````````bash
+```bash
 ./build/compilador programa.c
-``````````
+```
 
 Passe o arquivo como argumento: assim a entrada padrão fica livre para o `scanf` do programa.
 
-``````````bash
+```bash
 echo "5" | ./build/compilador fatorial.c       # programa que usa scanf
 ./build/compilador < programa.c                # também aceito, mas o scanf não terá entrada
-``````````
+```
 
 ### O que é impresso
 
@@ -71,7 +71,7 @@ Erros vão para `stderr`. Se houver **qualquer** erro léxico, sintático ou sem
 
 Arquivo `fatorial.c`:
 
-``````````c
+```c
 int fatorial(int n) {
     if (n <= 1) {
         return 1;
@@ -86,16 +86,16 @@ int main() {
     printf("Fatorial de %d = %d\n", n, fatorial(n));
     return 0;
 }
-``````````
+```
 
-``````````bash
+```bash
 $ echo "5" | ./build/compilador fatorial.c 2>&1 | grep -v '^  '
 Analise sintatica concluida com sucesso!
 Programa
 Digite um numero: Fatorial de 5 = 120
 
 Variaveis globais ao final da execucao:
-``````````
+```
 
 (O `grep -v '^  '` esconde as linhas da AST.)
 
@@ -114,22 +114,22 @@ Fora do escopo: vetores, ponteiros, `struct`, strings em variáveis, `switch`, `
 
 ## Rodar os testes
 
-``````````bash
+```bash
 for f in Testes/*/*.c; do
   echo "=== $f"
   ./build/compilador "$f" < /dev/null 2>&1 | grep -v '^  '
 done
-``````````
+```
 
 O teste com `scanf` precisa de entrada:
 
-``````````bash
+```bash
 echo "42 3.14 A" | ./build/compilador Testes/Gustavo/07_scanf.c
-``````````
+```
 
 ## Estrutura
 
-``````````text
+```text
 lexer/lexel.l          Analisador léxico (Flex)
 parser/parser.y        Gramática, construção da AST, análise semântica e main()
 src/ast.c, ast.h       Nós da AST, impressão e inferência de tipos
@@ -138,7 +138,7 @@ src/ambiente.c, .h     Valores e escopos em tempo de execução
 src/interpretador.c,.h Execução da AST
 Docs/                  Especificação, gramática e guias
 Testes/                Programas de teste por integrante
-``````````
+```
 
 ## Licença
 
