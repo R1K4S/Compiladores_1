@@ -17,6 +17,14 @@ NoAST* raiz_ast = NULL; // Raiz da AST do programa
 int tipo_atual = -1; // Guarda o tipo (INT, FLOAT) durante uma declaração múltipla
 int tipo_retorno_atual = -1; // Tipo de retorno da funcao sendo parseada no momento (-1 = fora de funcao)
 
+/* Total de erros lexicos, sintaticos e semanticos. Se for > 0 o programa NAO e executado
+   (Especificacao, Secao 11: programas invalidos sao rejeitados antes da execucao).
+   O lexer (lexel.l) tambem incrementa este contador. */
+int total_erros = 0;
+
+/* Reporta um erro semantico em stderr e o contabiliza */
+#define ERRO_SEMANTICO(...) do { total_erros++; fprintf(stderr, __VA_ARGS__); } while (0)
+
 /* Definidas no fim do arquivo (lá os tokens, como INT, já existem) */
 static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params);
 static void verificar_main(void);
@@ -153,9 +161,9 @@ comando:
     | RETURN expressao SEMI {
           int t = tipo_da_expressao($2);
           if (tipo_retorno_atual == -1) {
-              fprintf(stderr, "Erro Semantico na linha %d: 'return' fora de uma funcao.\n", yylineno);
+              ERRO_SEMANTICO("Erro Semantico na linha %d: 'return' fora de uma funcao.\n", yylineno);
           } else if (t != -1 && !tipos_compativeis(tipo_retorno_atual, t)){
-              fprintf(stderr,
+              ERRO_SEMANTICO(
                   "Erro Semantico na linha %d: tipo de retorno incompativel (esperado '%s').\n",
                   yylineno, nome_token(tipo_retorno_atual));
           }
@@ -184,17 +192,17 @@ tipo:
 declaracao_variavel:
       ID {
           if (!inserir_variavel($1, tipo_atual)) {
-              fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", yylineno, $1);
+              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", yylineno, $1);
           }
           $$ = criar_no_declaracao(tipo_atual, criar_no_id($1), NULL);
       }
     | ID ASSIGN expressao {
           if (!inserir_variavel($1, tipo_atual)) {
-              fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", yylineno, $1);
+              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' ja declarada neste escopo.\n", yylineno, $1);
           }
           int td = tipo_da_expressao($3);
           if (td != -1 && !tipos_compativeis(tipo_atual, td)) {
-              fprintf(stderr,
+              ERRO_SEMANTICO(
                   "Erro Semantico na linha %d: inicializacao incompativel para '%s' (esperado '%s').\n",
                   yylineno, $1, nome_token(tipo_atual));
           }
@@ -207,7 +215,7 @@ expressao:
           int te = tipo_da_expressao($1);
           int td = tipo_da_expressao($3);
           if (te != -1 && td != -1 && !tipos_compativeis(te, td)) {
-              fprintf(stderr,
+              ERRO_SEMANTICO(
                   "Erro Semantico na linha %d: atribuicao incompativel (tipo '%s' nao aceita o valor atribuido).\n",
                   yylineno, nome_token(te));
           }
@@ -231,7 +239,7 @@ expressao:
     | LPAREN expressao RPAREN     { $$ = $2; }
     | ID {
           if (!buscar_variavel($1)) {
-              fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, $1);
+              ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, $1);
           }
           $$ = criar_no_id($1);
       }
@@ -274,11 +282,11 @@ static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
     }
 
     if (strcmp(nome, "main") == 0 && (tipo_retorno != INT || n != 0)) {
-        fprintf(stderr, "Erro Semantico na linha %d: 'main' deve ter a assinatura 'int main()'.\n", yylineno);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: 'main' deve ter a assinatura 'int main()'.\n", yylineno);
     }
 
     if (!inserir_funcao(nome, tipo_retorno, n, tipos)) {
-        fprintf(stderr, "Erro Semantico na linha %d: '%s' ja declarado neste escopo.\n", yylineno, nome);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' ja declarado neste escopo.\n", yylineno, nome);
     }
     free(tipos);
 
@@ -286,7 +294,7 @@ static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
     for (NoAST* p = params; p != NULL; p = p->proximo) {
         const char* nome_param = p->esq->dado.string_val;
         if (!inserir_variavel(nome_param, p->dado.tipo_dado)) {
-            fprintf(stderr, "Erro Semantico na linha %d: Parametro '%s' duplicado na funcao '%s'.\n", yylineno, nome_param, nome);
+            ERRO_SEMANTICO("Erro Semantico na linha %d: Parametro '%s' duplicado na funcao '%s'.\n", yylineno, nome_param, nome);
         }
     }
 }
@@ -296,7 +304,7 @@ static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir) {
     int te = tipo_da_expressao(esq);
     int td = tipo_da_expressao(dir);
     if (te == TIPO_STRING || td == TIPO_STRING) {
-        fprintf(stderr, "Erro Semantico na linha %d: operador '%s' nao pode ser aplicado a uma string.\n",
+        ERRO_SEMANTICO("Erro Semantico na linha %d: operador '%s' nao pode ser aplicado a uma string.\n",
                 yylineno, nome_token(op));
     }
     return criar_no_op_binaria(op, esq, dir);
@@ -305,7 +313,7 @@ static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir) {
 /* Constroi um no de operacao unaria, verificando antes que o operando nao seja string */
 static NoAST* criar_unaria_verificada(int op, NoAST* operando) {
     if (tipo_da_expressao(operando) == TIPO_STRING) {
-        fprintf(stderr, "Erro Semantico na linha %d: operador '%s' nao pode ser aplicado a uma string.\n",
+        ERRO_SEMANTICO("Erro Semantico na linha %d: operador '%s' nao pode ser aplicado a uma string.\n",
                 yylineno, nome_token(op));
     }
     return criar_no_op_unaria(op, operando);
@@ -316,12 +324,12 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos) {
     Simbolo* s = buscar_variavel(nome);
 
     if (s == NULL) {
-        fprintf(stderr, "Erro Semantico na linha %d: funcao '%s' nao declarada.\n", yylineno, nome);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: funcao '%s' nao declarada.\n", yylineno, nome);
         return criar_no_chamada(nome, argumentos);
     }
 
     if (!s->eh_funcao) {
-        fprintf(stderr, "Erro Semantico na linha %d: '%s' nao e uma funcao.\n", yylineno, nome);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' nao e uma funcao.\n", yylineno, nome);
         return criar_no_chamada(nome, argumentos);
     }
 
@@ -329,7 +337,7 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos) {
     for (NoAST* a = argumentos; a != NULL; a = a->proximo) n_args++;
 
     if (n_args != s->num_params) {
-        fprintf(stderr,
+        ERRO_SEMANTICO(
             "Erro Semantico na linha %d: funcao '%s' espera %d argumento(s), recebeu %d.\n",
             yylineno, nome, s->num_params, n_args);
         return criar_no_chamada(nome, argumentos);
@@ -340,7 +348,7 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos) {
         int t_arg = tipo_da_expressao(a);
         int t_param = s->tipos_params[i];
         if (t_arg != -1 && !tipos_compativeis(t_param, t_arg)) {
-            fprintf(stderr,
+            ERRO_SEMANTICO(
                 "Erro Semantico na linha %d: argumento %d de '%s' incompativel (esperado '%s').\n",
                 yylineno, i + 1, nome, nome_token(t_param));
         }
@@ -361,16 +369,16 @@ static int tipo_esperado_scanf(const char* formato) {
 static NoAST* validar_scanf(const char* formato, const char* nome_var) {
     int esperado = tipo_esperado_scanf(formato);
     if (esperado == -1) {
-        fprintf(stderr,
+        ERRO_SEMANTICO(
             "Erro Semantico na linha %d: scanf aceita apenas os formatos \"%%d\", \"%%f\" ou \"%%c\".\n",
             yylineno);
     }
 
     Simbolo* s = buscar_variavel(nome_var);
     if (s == NULL) {
-        fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, nome_var);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, nome_var);
     } else if (esperado != -1 && s->tipo_dado != esperado) {
-        fprintf(stderr,
+        ERRO_SEMANTICO(
             "Erro Semantico na linha %d: scanf com formato '%s' espera variavel '%s', mas '%s' e '%s'.\n",
             yylineno, formato, nome_token(esperado), nome_var, nome_token(s->tipo_dado));
     }
@@ -382,7 +390,7 @@ static NoAST* validar_scanf(const char* formato, const char* nome_var) {
    nada novo no interpretador. O valor da expressao e o valor ja atualizado. */
 static NoAST* criar_incremento(const char* nome, int op) {
     if (!buscar_variavel(nome)) {
-        fprintf(stderr, "Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, nome);
+        ERRO_SEMANTICO("Erro Semantico na linha %d: Variavel '%s' nao declarada.\n", yylineno, nome);
     }
     return criar_no_atribuicao(criar_no_id(nome),
         criar_no_op_binaria(op, criar_no_id(nome), criar_no_literal_int(1)));
@@ -393,12 +401,13 @@ static NoAST* criar_incremento(const char* nome, int op) {
 static void verificar_main(void) {
     Simbolo* m = buscar_variavel("main");
     if (m == NULL || !m->eh_funcao) {
-        fprintf(stderr, "Erro Semantico: funcao 'main' nao encontrada. Todo programa precisa de 'int main()'.\n");
+        ERRO_SEMANTICO("Erro Semantico: funcao 'main' nao encontrada. Todo programa precisa de 'int main()'.\n");
     }
 }
 
 void yyerror(const char *s)
 {
+    total_erros++;
     fprintf(stderr, "Erro sintático na linha %d: %s\n", yylineno, s);
 }
 
@@ -422,13 +431,21 @@ int main(int argc, char** argv)
 
     inicializar_tabela();
 
-    if (yyparse() == 0)
-    {
-        printf("Analise sintatica concluida com sucesso!\n");
-        imprimir_ast(raiz_ast);
+    int resultado_parse = yyparse();
+    if (resultado_parse == 0) {
         verificar_main();
-        executar_programa(raiz_ast);
     }
 
-    return 0;
+    /* Qualquer erro (lexico, sintatico ou semantico) impede a execucao e sai com codigo 1 */
+    if (resultado_parse != 0 || total_erros > 0) {
+        fprintf(stderr, "%d erro(s) encontrado(s). O programa nao foi executado.\n",
+                total_erros > 0 ? total_erros : 1);
+        return 1;
+    }
+
+    printf("Analise sintatica concluida com sucesso!\n");
+    imprimir_ast(raiz_ast);
+
+    /* O codigo de saida do processo e o valor retornado por 'main' do programa MiniC */
+    return executar_programa(raiz_ast);
 }
