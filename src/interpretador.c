@@ -266,9 +266,10 @@ void interpretar_comando(const NoAST* no) {
             ambiente_sair_escopo();
             break;
         case NO_FUNCAO:
-            if (no->dado.string_val != NULL && strcmp(no->dado.string_val, "main") == 0) {
-                interpretar_comando(no->dir);
-            }
+            /* Definicoes de funcao nao executam nada aqui: 'main' (e qualquer outra
+               funcao) so roda via executar_funcao, com seu proprio quadro de chamada.
+               Executar o corpo de 'main' neste ponto fazia o 'return' falhar
+               ("'return' fora de uma funcao") e, sem 'return', 'main' rodava duas vezes. */
             break;
         case NO_SCANF: {
             const char* formato = no->dado.string_val;
@@ -362,15 +363,17 @@ void interpretar_comando(const NoAST* no) {
     }
 }
 
-void executar_programa(const NoAST* raiz) {
+int executar_programa(const NoAST* raiz) {
     ambiente_iniciar();
     registrar_funcoes(raiz);
     interpretar_lista(raiz);
 
     /* Depois dos comandos globais, o programa começa em 'main' */
+    int codigo_saida = 0;
     const NoAST* principal = buscar_funcao("main");
-    if (principal != NULL) executar_funcao(principal, NULL);
+    if (principal != NULL) codigo_saida = valor_como_int(executar_funcao(principal, NULL));
 
     printf("\n");
     ambiente_imprimir_global();
+    return codigo_saida;
 }
