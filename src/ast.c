@@ -188,7 +188,13 @@ static void imprimir_no(const NoAST* no, int nivel) {
         switch (no->tipo) {
             case NO_LITERAL_INT:    printf(" %d", no->dado.valor_int); break;
             case NO_LITERAL_FLOAT:  printf(" %g", no->dado.valor_float); break;
-            case NO_LITERAL_CHAR:   printf(" '%c'", no->dado.valor_int); break;
+            case NO_LITERAL_CHAR:
+                /* caracteres de controle aparecem escapados, para a AST ficar numa linha so */
+                if (no->dado.valor_int == '\n')      printf(" '\\n'");
+                else if (no->dado.valor_int == '\t') printf(" '\\t'");
+                else if (no->dado.valor_int == 0)    printf(" '\\0'");
+                else                                 printf(" '%c'", no->dado.valor_int);
+                break;
             case NO_LITERAL_STRING:
             case NO_ID:
             case NO_CHAMADA:        printf(" %s", no->dado.string_val); break;

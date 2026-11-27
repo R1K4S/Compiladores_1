@@ -1,0 +1,13 @@
+
+--- stderr ---
+Erro Semantico na linha 6: funcao 'soma' espera 2 argumento(s), recebeu 1.
+Erro Semantico na linha 7: argumento 1 de 'letra' incompativel (esperado 'char').
+Erro Semantico na linha 10: 'numero' nao e uma funcao.
+Erro Semantico na linha 12: 'soma' ja declarado neste escopo.
+Erro Semantico na linha 13: Parametro 'a' duplicado na funcao 'repetido'.
+Erro Semantico na linha 14: tipo de retorno incompativel (esperado 'int').
+Erro Semantico na linha 16: 'return' fora de uma funcao.
+Erro Semantico na linha 18: 'main' deve ter a assinatura 'int main()'.
+Erro Semantico na linha 8: funcao 'inexistente' nao declarada.
+9 erro(s) encontrado(s). O programa nao foi executado.
+--- exit: 1 ---

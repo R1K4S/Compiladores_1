@@ -1,0 +1,73 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID nota
+        Int 75
+      If
+        Op >=
+          ID nota
+          Int 90
+        Bloco
+          Printf resultado esperado: A  obtido: %d\n
+            ID nota
+        Bloco
+          If
+            Op >=
+              ID nota
+              Int 70
+            Bloco
+              Printf resultado esperado: B  obtido: %d\n
+                ID nota
+            Bloco
+              If
+                Op >=
+                  ID nota
+                  Int 50
+                Bloco
+                  Printf resultado esperado: C  obtido: %d\n
+                    ID nota
+                Bloco
+                  Printf resultado esperado: F  obtido: %d\n
+                    ID nota
+      Declaracao int
+        ID x
+        Int 5
+      Declaracao int
+        ID y
+        Int 10
+      If
+        Op <
+          ID x
+          ID y
+        Bloco
+          If
+            Op ==
+              ID x
+              Int 5
+            Bloco
+              Printf x < y e x == 5: esperado 1  obtido: 1\n
+            Bloco
+              Printf x < y e x != 5: esperado 0  obtido: 0\n
+        Bloco
+          Printf ramo errado: nao deveria imprimir\n
+      Declaracao int
+        ID a
+        Int 0
+      If
+        ID a
+        Bloco
+          Printf ramo errado: nao deveria imprimir\n
+        Bloco
+          Printf a e zero, else executou: esperado 1  obtido: 1\n
+      Return
+        Int 0
+resultado esperado: B  obtido: 75
+x < y e x == 5: esperado 1  obtido: 1
+a e zero, else executou: esperado 1  obtido: 1
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

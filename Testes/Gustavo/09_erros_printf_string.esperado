@@ -1,0 +1,7 @@
+
+--- stderr ---
+Erro Semantico na linha 5: operador '+' nao pode ser aplicado a uma string.
+Erro Semantico na linha 8: operador '==' nao pode ser aplicado a uma string.
+Erro Semantico na linha 11: operador '!' nao pode ser aplicado a uma string.
+3 erro(s) encontrado(s). O programa nao foi executado.
+--- exit: 1 ---

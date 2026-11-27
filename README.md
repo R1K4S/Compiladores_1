@@ -21,41 +21,42 @@ O interpretador lê um programa MiniC, faz a análise léxica, sintática e sem�
 | `flex` | Gerar o analisador léxico (`lexer/lexel.l`) |
 | `bison` | Gerar o analisador sintático (`parser/parser.y`) |
 
-``````````bash
+```bash
 # Ubuntu / Debian / WSL
 sudo apt update && sudo apt install -y build-essential flex bison
 
 # macOS
 brew install flex bison
-``````````
+```
 
 ## Compilar
 
-``````````bash
+```bash
 make clean && make
-``````````
+```
 
 O executável é gerado em `build/compilador`.
 
 ## Rodar
 
-``````````bash
-./build/compilador programa.c
-``````````
+```bash
+./build/compilador programa.c          # executa o programa
+./build/compilador -ast programa.c     # mostra também a AST e as variáveis globais
+```
 
 Passe o arquivo como argumento: assim a entrada padrão fica livre para o `scanf` do programa.
 
-``````````bash
+```bash
 echo "5" | ./build/compilador fatorial.c       # programa que usa scanf
 ./build/compilador < programa.c                # também aceito, mas o scanf não terá entrada
-``````````
+```
 
 ### O que é impresso
 
-1. `Analise sintatica concluida com sucesso!`
-2. A AST do programa, indentada
-3. A saída do programa MiniC (`printf`)
-4. As variáveis globais ao final da execução
+Por padrão, só a saída do programa MiniC (`printf`). Com a opção `-ast`, aparecem também:
+
+1. `Analise sintatica concluida com sucesso!` e a AST do programa, indentada, antes da execução;
+2. as variáveis globais, ao final da execução.
 
 Erros vão para `stderr`. Se houver **qualquer** erro léxico, sintático ou semântico, o programa **não é executado** e o interpretador termina com código de saída `1`. Sem erros, o código de saída é o valor retornado por `main`.
 
@@ -71,7 +72,7 @@ Erros vão para `stderr`. Se houver **qualquer** erro léxico, sintático ou sem
 
 Arquivo `fatorial.c`:
 
-``````````c
+```c
 int fatorial(int n) {
     if (n <= 1) {
         return 1;
@@ -86,18 +87,12 @@ int main() {
     printf("Fatorial de %d = %d\n", n, fatorial(n));
     return 0;
 }
-``````````
+```
 
-``````````bash
-$ echo "5" | ./build/compilador fatorial.c 2>&1 | grep -v '^  '
-Analise sintatica concluida com sucesso!
-Programa
+```bash
+$ echo "5" | ./build/compilador fatorial.c
 Digite um numero: Fatorial de 5 = 120
-
-Variaveis globais ao final da execucao:
-``````````
-
-(O `grep -v '^  '` esconde as linhas da AST.)
+```
 
 Repare que o `scanf` do MiniC recebe a variável **sem** `&`, pois a linguagem não tem ponteiros.
 
@@ -114,22 +109,17 @@ Fora do escopo: vetores, ponteiros, `struct`, strings em variáveis, `switch`, `
 
 ## Rodar os testes
 
-``````````bash
-for f in Testes/*/*.c; do
-  echo "=== $f"
-  ./build/compilador "$f" < /dev/null 2>&1 | grep -v '^  '
-done
-``````````
+```bash
+make test
+```
 
-O teste com `scanf` precisa de entrada:
+Cada `Testes/<pasta>/<teste>.c` (e cada programa de referência em `programas_teste/`) é executado e comparado, via `diff`, com o arquivo `<teste>.esperado` ao lado. A comparação inclui stdout, stderr e o código de saída. Se existir `<teste>.in`, ele é usado como entrada do `scanf`. O comando termina com `Resultado: N passaram, 0 falharam.` e sai com código 1 se algum teste falhar, mostrando o diff.
 
-``````````bash
-echo "42 3.14 A" | ./build/compilador Testes/Gustavo/07_scanf.c
-``````````
+Para criar um teste novo, coloque o `.c` (e o `.in`, se precisar) em `Testes/<pasta>/` e rode `make test-atualizar`. Esse comando regrava **todos** os `.esperado` com a saída atual, então confira com `git diff Testes/` antes de commitar.
 
 ## Estrutura
 
-``````````text
+```text
 lexer/lexel.l          Analisador léxico (Flex)
 parser/parser.y        Gramática, construção da AST, análise semântica e main()
 src/ast.c, ast.h       Nós da AST, impressão e inferência de tipos
@@ -138,7 +128,7 @@ src/ambiente.c, .h     Valores e escopos em tempo de execução
 src/interpretador.c,.h Execução da AST
 Docs/                  Especificação, gramática e guias
 Testes/                Programas de teste por integrante
-``````````
+```
 
 ## Licença
 

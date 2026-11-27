@@ -1,0 +1,8 @@
+
+--- stderr ---
+Erro Semantico na linha 12: Variavel 'x' nao declarada.
+Erro Semantico na linha 14: Variavel 'b' nao declarada.
+Erro Semantico na linha 19: Variavel 'y' nao declarada.
+Erro Semantico na linha 22: Variavel 'z' ja declarada neste escopo.
+4 erro(s) encontrado(s). O programa nao foi executado.
+--- exit: 1 ---

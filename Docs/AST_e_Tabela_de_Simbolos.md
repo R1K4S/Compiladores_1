@@ -86,7 +86,7 @@ Todas alocam o nó com `malloc` e começam com os quatro ponteiros em `NULL`. A 
 
 Por isso, num `if`, a ordem dos filhos é: **condição, bloco do `if`, bloco do `else`**. Numa declaração, o primeiro filho é o `ID` e o segundo, se existir, é o valor inicial.
 
-A função é chamada no `main` somente quando o `yyparse` termina com sucesso.
+A função só é chamada com a opção `-ast` (`./build/compilador -ast programa.c`), e apenas quando a análise termina sem erros.
 
 Exemplo, para `int x = 2 + 3 * 4;` seguido de `if (x > 5) { x = 1; } else x = 0;`:
 
@@ -167,7 +167,7 @@ Se a inserção falhar, o parser imprime em `stderr`:
 Erro Semantico na linha N: Variavel 'x' ja declarada neste escopo.
 ```
 
-O parser **continua** depois desse erro, e a análise ainda termina com `Analise sintatica concluida com sucesso!`, já que o erro é semântico e não sintático.
+O parser **continua** depois desse erro, para reportar os demais. Como há erro, o programa não é executado e o interpretador sai com código 1 (Especificação, Seção 11).
 
 ### 2.5 Análise semântica
 
@@ -197,10 +197,10 @@ Operadores binários e unários também passam por uma checagem mais simples: `c
 
 ```bash
 make clean && make
-printf 'int main() { int x = 2 + 3 * 4; if (x > 5) { x = 1; } else x = 0; return 0; }\n' | ./build/compilador   # imprime a árvore
-printf 'int main() { int x; int x; return 0; }\n' | ./build/compilador                                          # erro semântico (redeclaração)
-printf 'int main() { int x; { int x; } return 0; }\n' | ./build/compilador                                      # válido (sombreamento)
-printf 'int f() { return 3.14; } int main() { return 0; }\n' | ./build/compilador                                 # ok, float->int trunca (Secao 6.1)
-printf "int f() { return 'a'; } int main() { return 0; }\n" | ./build/compilador                                  # erro semantico (char->int nao permitido)
-printf 'int soma(int a, int b) { return a + b; } int main() { int x = soma(1); return 0; }\n' | ./build/compilador # erro semantico (aridade)
+printf 'int main() { int x = 2 + 3 * 4; if (x > 5) { x = 1; } else x = 0; return 0; }\n' | ./build/compilador -ast   # imprime a árvore
+printf 'int main() { int x; int x; return 0; }\n' | ./build/compilador -ast                                          # erro semântico (redeclaração)
+printf 'int main() { int x; { int x; } return 0; }\n' | ./build/compilador -ast                                      # válido (sombreamento)
+printf 'int f() { return 3.14; } int main() { return 0; }\n' | ./build/compilador -ast                                 # ok, float->int trunca (Secao 6.1)
+printf "int f() { return 'a'; } int main() { return 0; }\n" | ./build/compilador -ast                                  # erro semantico (char->int nao permitido)
+printf 'int soma(int a, int b) { return a + b; } int main() { int x = soma(1); return 0; }\n' | ./build/compilador -ast # erro semantico (aridade)
 ```

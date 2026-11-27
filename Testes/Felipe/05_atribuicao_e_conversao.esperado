@@ -1,0 +1,91 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Declaracao int
+    ID a
+    Int 1
+  Atribuicao
+    ID a
+    Int 2
+  Printf atribuicao simples: %d (esperado 2)\n
+    ID a
+  Atribuicao
+    ID a
+    Op +
+      Op *
+        ID a
+        ID a
+      Int 1
+  Printf usando a propria variavel: %d (esperado 5)\n
+    ID a
+  Declaracao int
+    ID b
+  Declaracao int
+    ID c
+  Atribuicao
+    ID b
+    Atribuicao
+      ID c
+      Int 7
+  Printf atribuicao encadeada: %d %d (esperado 7 7)\n
+    ID b
+    ID c
+  Declaracao int
+    ID d
+  Declaracao int
+    ID e
+    Op +
+      Atribuicao
+        ID d
+        Int 4
+      Int 1
+  Printf valor de uma atribuicao: d=%d e=%d (esperado d=4 e=5)\n
+    ID d
+    ID e
+  Declaracao float
+    ID f
+    Float 10.8
+  Declaracao int
+    ID i
+    ID f
+  Printf float para int corta a parte decimal: %d (esperado 10)\n
+    ID i
+  Declaracao int
+    ID j
+    Int 3
+  Declaracao float
+    ID k
+    ID j
+  Printf int para float: %f (esperado 3.000000)\n
+    ID k
+  Declaracao float
+    ID m
+    Op /
+      Int 5
+      Int 2
+  Printf 5 / 2 guardado em float: %f (esperado 2.000000)\n
+    ID m
+  Funcao int main
+    Bloco
+      Return
+        Int 0
+atribuicao simples: 2 (esperado 2)
+usando a propria variavel: 5 (esperado 5)
+atribuicao encadeada: 7 7 (esperado 7 7)
+valor de uma atribuicao: d=4 e=5 (esperado d=4 e=5)
+float para int corta a parte decimal: 10 (esperado 10)
+int para float: 3.000000 (esperado 3.000000)
+5 / 2 guardado em float: 2.000000 (esperado 2.000000)
+
+Variaveis globais ao final da execucao:
+  a = 5 (int)
+  b = 7 (int)
+  c = 7 (int)
+  d = 4 (int)
+  e = 5 (int)
+  f = 10.8 (float)
+  i = 10 (int)
+  j = 3 (int)
+  k = 3 (float)
+  m = 2 (float)
+--- stderr ---
+--- exit: 0 ---

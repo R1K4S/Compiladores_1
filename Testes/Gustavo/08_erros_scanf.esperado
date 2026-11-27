@@ -1,0 +1,8 @@
+
+--- stderr ---
+Erro Semantico na linha 6: scanf aceita apenas os formatos "%d", "%f" ou "%c".
+Erro Semantico na linha 9: scanf com formato '%d' espera variavel 'int', mas 'f' e 'float'.
+Erro Semantico na linha 12: scanf com formato '%f' espera variavel 'float', mas 'n' e 'int'.
+Erro Semantico na linha 15: Variavel 'fantasma' nao declarada.
+4 erro(s) encontrado(s). O programa nao foi executado.
+--- exit: 1 ---

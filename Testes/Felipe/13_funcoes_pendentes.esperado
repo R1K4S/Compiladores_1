@@ -1,0 +1,66 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int dobro
+    Declaracao int
+      ID x
+    Bloco
+      Return
+        Op *
+          ID x
+          Int 2
+  Funcao int fatorial
+    Declaracao int
+      ID n
+    Bloco
+      If
+        Op <=
+          ID n
+          Int 1
+        Bloco
+          Return
+            Int 1
+        Bloco
+          Return
+            Op *
+              ID n
+              Chamada fatorial
+                Op -
+                  ID n
+                  Int 1
+  Funcao int muda
+    Declaracao int
+      ID a
+    Bloco
+      Atribuicao
+        ID a
+        Int 99
+      Return
+        ID a
+  Funcao int main
+    Bloco
+      Printf dobro de 4: %d\n
+        Chamada dobro
+          Int 4
+      Printf fatorial de 5: %d\n
+        Chamada fatorial
+          Int 5
+      Declaracao int
+        ID v
+        Int 1
+      Declaracao int
+        ID r
+        Chamada muda
+          ID v
+      Printf passagem por valor: v=%d r=%d\n
+        ID v
+        ID r
+      Return
+        Int 0
+dobro de 4: 8
+fatorial de 5: 120
+passagem por valor: v=1 r=99
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

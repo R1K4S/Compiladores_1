@@ -70,14 +70,16 @@ Se houver **qualquer** erro léxico, sintático ou semântico, a fase de execuç
 **Por quê:**
 - A tabela de símbolos precisa abrir e fechar escopos exatamente quando o parser encontra `{` e `}`. As regras auxiliares `bloco_inicio`, `bloco_fim` e `for_inicio` fazem isso sem esforço extra.
 - Quando o parser reduz `ID`, o escopo atual da tabela é exatamente o escopo léxico daquele ponto do texto. Num percurso posterior da AST, seria preciso reconstruir os escopos.
-- A informação de linha (`yylineno`) está disponível na hora de reportar o erro.
+- A linha de cada símbolo (`@n`, via `%locations`) está disponível na hora de reportar o erro.
 
 **Consequências:**
-- Uma função precisa estar **definida acima** do ponto em que é chamada. Como não há protótipos, recursão mútua não é possível (Especificação, Seção 8.3).
-- A linha reportada pode ser a do *lookahead* (o token seguinte), às vezes uma linha depois do erro real.
+- Uma chamada a uma função ainda não vista (definida mais abaixo, ou em recursão mútua) não pode ser conferida na hora. Ela é guardada numa lista de **chamadas pendentes**, com os tipos dos argumentos calculados no escopo da chamada, e conferida no fim do parse (`verificar_chamadas_pendentes`). Esses erros saem no fim da lista, e o tipo de retorno dessas chamadas não é checado no ponto de uso.
+- Para as mensagens apontarem a linha exata, o parser usa `%locations`: o lexer grava a linha de cada token em `yylloc` (`YY_USER_ACTION`), e as ações usam `@n.first_line` do símbolo do erro, em vez de `yylineno`. O `yylineno` já estaria na linha do *lookahead*, às vezes uma linha depois. Os erros **sintáticos** continuam na linha do token inesperado.
 - Os tipos são inferidos sob demanda (`tipo_da_expressao`), em vez de anotados nos nós da AST.
 
-**Alternativa considerada:** uma 2ª passada sobre a AST resolveria a ordem das funções, mas exigiria guardar escopos na própria AST. Fica como melhoria futura.
+**Alternativa considerada:** uma 2ª passada completa sobre a AST também resolveria a ordem das funções, mas exigiria guardar escopos na própria AST. As chamadas pendentes resolvem o caso das funções com bem menos código.
+
+A checagem de `return` ausente também roda no parser, quando a definição de função é reduzida: uma análise de caminhos sobre o corpo (`lista_sempre_retorna`). Ela é pulada quando a função teve erro sintático, porque o corpo recuperado está incompleto e daria um falso positivo.
 
 ### D7. Tabela de símbolos como pilha de escopos encadeados
 
@@ -148,7 +150,7 @@ Se houver **qualquer** erro léxico, sintático ou semântico, a fase de execuç
 
 **Por quê:** segue o `run_tests.sh` das semanas 07–08 e a dica do guia de manter testes automáticos por fase. A conferência deixou de ser visual ("esperado X, obtido Y"): um único comando diz se algo quebrou. stdout e stderr são capturados **separadamente** porque, juntos (`2>&1`), a ordem das linhas depende do tamanho do buffer do sistema e mudaria entre Linux e macOS.
 
-**Consequência:** a saída inclui a impressão da AST, então os testes também cobrem o parser. Uma mudança intencional na impressão exige rodar `make test-atualizar` e revisar o `git diff`.
+**Consequência:** o `make test` roda o interpretador com `-ast`, então a saída comparada inclui a impressão da AST e os testes também cobrem o parser. Uma mudança intencional na impressão exige rodar `make test-atualizar` e revisar o `git diff`.
 
 ## 3. Registro de problemas e soluções
 
@@ -161,16 +163,18 @@ Se houver **qualquer** erro léxico, sintático ou semântico, a fase de execuç
 | P5 | Análise parava no primeiro erro sintático | Um erro de digitação por execução | Nenhuma regra com o token `error` | Recuperação de erros (D12) |
 | P6 | Documentação divergente do código | `gramatica_minic.md` sem `for`, `%`, `printf`; Especificação proibindo recursos aceitos | A gramática evoluiu ao longo das sprints e os documentos não acompanharam | Especificação V1.1 (D14) e `gramatica_minic.md` reescrita a partir do `parser.y` |
 | P7 | Testes conferidos a olho | Regressões passavam despercebidas; `DocumentoDeTestes.MD` marcava como pendente um teste que já passava | Não havia comparação automática | `make test` com `.esperado` (D15) |
+| P8 | Escapes em literal `char` | `'\n'` virava `'\\'` (código 92) | O lexer guardava `yytext[1]`, que num escape é a própria barra | Função `valor_char_literal` no `lexel.l` traduz `\n`, `\t`, `\0` e os demais |
+| P9 | Bloco vazio rejeitado | `if (x) { }` e `int f() { }` davam erro sintático | `lista_comandos` exigia ao menos 1 comando | Alternativas `bloco_inicio bloco_fim` e `LBRACE RBRACE` (sem conflitos no Bison) |
+| P10 | Linha do erro deslocada | Um erro numa expressão que continuava na linha seguinte era acusado nessa linha seguinte | As ações usavam `yylineno`, que já estava no *lookahead* | `%locations` + `@n.first_line` (D6) |
+| P11 | Chamada antes da definição rejeitada | `main` no topo do arquivo chamando funções definidas abaixo dava `funcao nao declarada`; recursão mútua era impossível | Análise semântica numa passada só | Chamadas pendentes conferidas no fim do parse (D6) |
+| P12 | `return` ausente não detectado | Função `int` sem `return` em algum caminho devolvia 0 silenciosamente | Faltava análise de caminhos | `lista_sempre_retorna` na redução de `definicao_funcao` (D6) |
 
 ## 4. Limitações conhecidas
 
 | Limitação | Exemplo | Caminho de solução |
 |---|---|---|
-| Escapes em literal `char` | `'\n'` vira `'\\'` | No `lexel.l`, tratar `yytext[1] == '\\'` e mapear `n`, `t` e `0` |
-| Bloco ou corpo de função vazio é erro sintático | `if (x) { }`, `int f() { }` | Alternativa vazia em `lista_comandos` (verificar conflitos no Bison) |
-| Função precisa ser definida antes do uso; sem recursão mútua | `a()` chama `b()`, definida abaixo | Pré-registrar as funções ou fazer uma 2ª passada semântica (D6) |
-| Ausência de `return` não é detectada | Função `int` sem `return` devolve 0 | Análise de caminhos na AST (Especificação, Seção 11, item 7) |
-| Linha do erro pode ser a seguinte | Erro no fim de uma linha acusado na próxima | `%locations` no Bison e `@n` nas ações |
+| Tipo de retorno não conferido em chamada antes da definição | `char c = f();` com `f` `int` definida abaixo | Guardar também o tipo esperado na chamada pendente |
+| Erros de chamadas pendentes saem fora de ordem | Aparecem no fim, depois de erros de linhas posteriores | Acumular os erros e imprimir ordenados por linha |
 | `printf` sem largura/precisão e sem checagem de tipo | `%.2f`; `%d` com `float` | Validar o formato no parser, contra os tipos dos argumentos |
 | AST e escopo global não são liberados ao final | — | Função `liberar_ast`; irrelevante para um processo de vida curta |
 

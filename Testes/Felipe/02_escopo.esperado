@@ -1,0 +1,56 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Declaracao int
+    ID x
+    Int 1
+  Bloco
+    Declaracao int
+      ID y
+      Int 2
+    Printf bloco enxerga a variavel de fora: %d %d (esperado 1 2)\n
+      ID x
+      ID y
+  Bloco
+    Declaracao int
+      ID x
+      Int 10
+    Printf x dentro do bloco: %d (esperado 10)\n
+      ID x
+  Printf x depois do bloco: %d (esperado 1)\n
+    ID x
+  Bloco
+    Atribuicao
+      ID x
+      Int 50
+  Printf x alterada de dentro do bloco: %d (esperado 50)\n
+    ID x
+  Declaracao int
+    ID a
+    Int 1
+  Bloco
+    Declaracao int
+      ID b
+      Int 2
+    Bloco
+      Declaracao int
+        ID c
+        Int 3
+      Printf tres niveis: %d %d %d (esperado 1 2 3)\n
+        ID a
+        ID b
+        ID c
+  Funcao int main
+    Bloco
+      Return
+        Int 0
+bloco enxerga a variavel de fora: 1 2 (esperado 1 2)
+x dentro do bloco: 10 (esperado 10)
+x depois do bloco: 1 (esperado 1)
+x alterada de dentro do bloco: 50 (esperado 50)
+tres niveis: 1 2 3 (esperado 1 2 3)
+
+Variaveis globais ao final da execucao:
+  x = 50 (int)
+  a = 1 (int)
+--- stderr ---
+--- exit: 0 ---

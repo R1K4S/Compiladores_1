@@ -1,0 +1,132 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID soma
+        Int 0
+      For
+        Declaracao int
+          ID i
+          Int 0
+        Op <
+          ID i
+          Int 5
+        Atribuicao
+          ID i
+          Op +
+            ID i
+            Int 1
+        Bloco
+          Atribuicao
+            ID soma
+            Op +
+              ID soma
+              ID i
+      Printf soma 0..4 esperado: 10  obtido: %d\n
+        ID soma
+      Declaracao int
+        ID j
+        Int 0
+      For
+        Atribuicao
+          ID j
+          Int 1
+        Op <=
+          ID j
+          Int 3
+        Atribuicao
+          ID j
+          Op +
+            ID j
+            Int 1
+        Bloco
+          Printf j=%d\n
+            ID j
+      For
+        Declaracao int
+          ID k
+          Int 10
+        Op <
+          ID k
+          Int 5
+        Atribuicao
+          ID k
+          Op +
+            ID k
+            Int 1
+        Bloco
+          Printf nao deveria imprimir\n
+      Printf for zero iteracoes ok\n
+      For
+        Declaracao int
+          ID a
+          Int 2
+        Op <=
+          ID a
+          Int 3
+        Atribuicao
+          ID a
+          Op +
+            ID a
+            Int 1
+        Bloco
+          For
+            Declaracao int
+              ID b
+              Int 1
+            Op <=
+              ID b
+              Int 3
+            Atribuicao
+              ID b
+              Op +
+                ID b
+                Int 1
+            Bloco
+              Printf %d x %d = %d\n
+                ID a
+                ID b
+                Op *
+                  ID a
+                  ID b
+      Declaracao int
+        ID vazou
+        Int 0
+      For
+        Declaracao int
+          ID v
+          Int 0
+        Op <
+          ID v
+          Int 3
+        Atribuicao
+          ID v
+          Op +
+            ID v
+            Int 1
+        Bloco
+          Atribuicao
+            ID vazou
+            ID v
+      Printf ultimo valor de vazou esperado: 2  obtido: %d\n
+        ID vazou
+      Return
+        Int 0
+soma 0..4 esperado: 10  obtido: 10
+j=1
+j=2
+j=3
+for zero iteracoes ok
+2 x 1 = 2
+2 x 2 = 4
+2 x 3 = 6
+3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+ultimo valor de vazou esperado: 2  obtido: 2
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

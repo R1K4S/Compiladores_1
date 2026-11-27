@@ -1,0 +1,19 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Declaracao float
+    ID a
+    Float 5
+  Declaracao int
+    ID b
+    Int 2
+  Printf %d\n
+    Op %
+      ID a
+      ID b
+  Funcao int main
+    Bloco
+      Return
+        Int 0
+--- stderr ---
+Erro de execucao: o operador % exige operandos inteiros.
+--- exit: 1 ---

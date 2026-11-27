@@ -1,0 +1,5 @@
+
+--- stderr ---
+Erro Semantico: funcao 'main' nao encontrada. Todo programa precisa de 'int main()'.
+1 erro(s) encontrado(s). O programa nao foi executado.
+--- exit: 1 ---

@@ -1,23 +1,34 @@
-#include <stdio.h>
-int mdc(int a, int b){
-    int temp, i;
+// MDC - versao em MiniC do programa de referencia
+// Le dois valores e imprime o maior divisor comum pelo metodo basico:
+// testa divisores de min(a, b) para baixo ate achar um que divida os dois.
+// Diferencas para a versao em C: sem #include, um scanf por variavel e sem '&',
+// e um while no lugar do for com corpo vazio.
 
-    // Trocando os valores entre as variáveis
-    if(a > b){
+int mdc(int a, int b) {
+    int temp;
+    int i;
+
+    // Trocando os valores entre as variaveis
+    if (a > b) {
         temp = a;
         a = b;
         b = temp;
     }
     // calculo do mdc
-    for(i = a; i > 1 && !(a % i == 0 && b % i == 0); i--){}
+    i = a;
+    while (i > 1 && !(a % i == 0 && b % i == 0)) {
+        i--;
+    }
     return i;
 }
 
-int main(){
-    int a, b;
+int main() {
+    int a;
+    int b;
 
     printf("Digite os dois valores: ");
-    scanf("%d %d", &a,&b);
-    printf("Mdc (%d , %d) -> funcao mdc basica = %d\n",a,b,mdc(a,b));
+    scanf("%d", a);
+    scanf("%d", b);
+    printf("Mdc (%d , %d) -> funcao mdc basica = %d\n", a, b, mdc(a, b));
     return 0;
 }

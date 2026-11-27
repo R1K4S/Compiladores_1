@@ -102,7 +102,7 @@ Com o `Makefile` na raiz do projeto, basta rodar:
 make
 ```
 
-Isso deve gerar o executável do compilador a partir de `lexer/lexel.l`, `parser/parser.y` e `src/main.c`.
+Isso deve gerar o executável do compilador a partir de `lexer/lexel.l`, `parser/parser.y` e `src/*.c`.
 
 Para limpar os arquivos gerados pela build (caso o `Makefile` possua esse alvo):
 

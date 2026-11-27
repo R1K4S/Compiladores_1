@@ -4,26 +4,39 @@ De início planejamos que cada membro testasse no mínimo o que implementou. Com
 
 ## Como rodar
 
-A partir da raiz do projeto:
+### Automático (recomendado)
+
+```bash
+make test
+```
+
+Roda todos os `Testes/*/*.c` e compara cada saída (stdout, stderr e código de saída) com o `.esperado` ao lado. Se existir um `.in` com o mesmo nome, ele vira a entrada do `scanf` (ex.: `Gustavo/07_scanf.in`). O comando termina com `Resultado: 25 passaram, 0 falharam.`
+
+Para adicionar um teste: crie o `.c` (e o `.in`, se precisar), rode `make test-atualizar`, confira o `.esperado` gerado com `git diff Testes/` e commite os dois.
+
+### Manual
 
 ```bash
 make clean && make
-for f in Testes/[SeuNome]/*.c; do echo "=== $f"; ./build/compilador < $f 2>&1; done
+./build/compilador Testes/[SeuNome]/01_declaracoes.c
+echo "42 3.14 A" | ./build/compilador Testes/Gustavo/07_scanf.c
 ```
 
-Para rodar um único teste:
-
-```bash
-./build/compilador < Testes/[SeuNome]/01_declaracoes.c
-```
-
-Os testes que leem entrada do `scanf` precisam de um arquivo de entrada:
-
-```bash
-./build/compilador < Testes/[SeuNome]/07_scanf.c <<< "42 3.14 A"
-```
+O arquivo vai como argumento. Assim o stdin fica livre para o `scanf`.
 
 Cada pasta de `Testes/` pertence a um membro. Os programas são escritos em MiniC e entram pela entrada padrão. As mensagens de erro saem pelo `stderr`, então aparecem antes do restante da saída quando há pipe.
+
+## Programas de referência (`programas_teste/`)
+
+Fatorial, Fibonacci e MDC eram os programas de referência em C da Sprint 1. Eles foram reescritos em MiniC válido e entram no `make test`, com a entrada do `scanf` no `.in` de cada um.
+
+| Programa | Entrada (`.in`) | Saída esperada | Diferenças em relação à versão em C |
+|---|---|---|---|
+| `fatorial.c` | `10` | `Fatorial de 10 = 3628800` | `int` no lugar de `unsigned long long` (maior fatorial exato: 12!), `scanf` sem `&` |
+| `fibonacci.c` | `30` | `832040` | Cálculo iterativo no lugar da memoização com vetor (o MiniC não tem vetores nem `long`); maior termo exato: `fibonacci(46)` |
+| `mdc.c` | `48 18` | `Mdc (48 , 18) -> funcao mdc basica = 6` | Um `scanf` por variável, sem `&`; `while` no lugar do `for` com corpo vazio |
+
+Os executáveis gerados com `gcc` a partir das versões em C (`fatorial`, `fibo`, `mdc`) foram removidos do repositório e estão no `.gitignore`.
 
 ## Felipe
 
@@ -48,7 +61,7 @@ Os testes 01 a 05 imprimem cada resultado seguido do valor esperado, então o te
 | 06 | `06_erros_de_variavel.c` | Variável não declarada; variável redeclarada no mesmo escopo; variável de um bloco usada fora dele | `Variavel 'x' nao declarada` (linhas 12, 14 e 19) e `Variavel 'z' ja declarada neste escopo` (linha 22) |
 | 07 | `07_erros_de_tipo.c` | Inicialização incompatível; atribuição incompatível; operador aritmético com string | Linhas 3, 6 e 8, uma mensagem para cada caso |
 | 08 | `08_erros_de_funcao.c` | Argumentos a menos; tipo de argumento errado; função inexistente; chamar algo que não é função; função redeclarada; parâmetro duplicado; `return` de tipo errado; `return` fora de função; `main` com assinatura errada | Linhas 6, 7, 8, 10, 12, 13, 14, 16 e 18, uma mensagem para cada caso |
-| 09 | `09_erro_sem_main.c` | Programa sem `main` | `funcao 'main' nao encontrada` (aviso: os comandos globais ainda executam) |
+| 09 | `09_erro_sem_main.c` | Programa sem `main` | `funcao 'main' nao encontrada`. O programa não é executado |
 
 ### Erros de execução
 
@@ -62,7 +75,7 @@ Os testes 01 a 05 imprimem cada resultado seguido do valor esperado, então o te
 | Teste | Arquivo | O que verifica | Resultado |
 |---|---|---|---|
 | 12 | `12_arvore.c` | Construção e impressão da AST | Passou. A árvore é impressa antes da execução |
-| 13 | `13_funcoes_pendentes.c` | Definição e chamada de funções, `return` e recursão | **Pendente (#51).** Hoje não imprime nada porque o interpretador ainda não executa funções. Reexecutar quando o #51 estiver completo |
+| 13 | `13_funcoes_pendentes.c` | Definição e chamada de funções, `return` e recursão | Passou. `dobro de 4: 8`, `fatorial de 5: 120`, passagem por valor `v=1 r=99` |
 
 ## Allan
 
@@ -105,24 +118,35 @@ Esses testes **complementam** os do Felipe: enquanto ele cobre declarações, es
 
 ### Teste 03 — `for` com declaração no `init`
 
-O `for` do MiniC (parser atualizado, `parser_1.y`) tem escopo próprio: a regra `for_inicio` chama `entrar_escopo()` antes do `LPAREN` e `sair_escopo()` é chamado após o `RPAREN`. Por isso `int i = 0` declarado no `for_init` é visível dentro do corpo mas desaparece após o `}` do laço. O teste 10 verifica exatamente esse comportamento como erro semântico.
+O `for` do MiniC (`parser.y`) tem escopo próprio: a regra `for_inicio` chama `entrar_escopo()` antes do `LPAREN` e `sair_escopo()` é chamado depois do corpo do laço. Por isso `int i = 0` declarado no `for_init` é visível dentro do corpo mas desaparece após o `}` do laço. O teste 10 verifica exatamente esse comportamento como erro semântico.
 
 ### Teste 04 e 11 — `printf` processa escapes no interpretador
 
-O `\n` e o `\t` dentro de strings de formato são processados pelo `case NO_PRINTF:` do `interpretador_1.c` (laço `for` sobre a string com `if (*f == '\\')`). Não dependem do lexer processar os escapes — portanto funcionam independentemente da correção do bug B5.
+O `\n` e o `\t` dentro de strings de formato são processados pelo `case NO_PRINTF:` do `interpretador.c` (laço `for` sobre a string com `if (*f == '\\')`). Não dependem do lexer processar os escapes — portanto funcionam independentemente da correção do bug B5.
 
 ### Teste 05 — `++` e `--` são açúcar sintático
 
-Conforme a `criar_incremento` no `parser_1.y`, `i++` e `++i` são transformados em `i = i + 1` durante o parse — o interpretador não precisa de nenhum `case` extra. O valor de `i` após `i++` já é o incrementado, pois o nó gerado é um `NO_ATRIBUICAO` que escreve e devolve o novo valor.
+Conforme a `criar_incremento` no `parser.y`, `i++` e `++i` são transformados em `i = i + 1` durante o parse — o interpretador não precisa de nenhum `case` extra. O valor de `i` após `i++` já é o incrementado, pois o nó gerado é um `NO_ATRIBUICAO` que escreve e devolve o novo valor.
 
 ### Teste 07 — `scanf` lê de `stdin`
 
-Enquanto o interpretador ler o código-fonte de `stdin` (bug B1 ainda presente), o `07_scanf.c` precisa ser executado a partir de **arquivo**, não de pipe, ou usando here-string com dois documentos encadeados. O jeito mais simples é:
+O programa é passado como argumento, e a entrada do `scanf` vem do stdin:
 
 ```bash
-./build/compilador < Testes/[SeuNome]/07_scanf.c <<< "42 3.14 A"
+echo "42 3.14 A" | ./build/compilador Testes/Gustavo/07_scanf.c
 ```
 
-Isso falha porque o lexer consome o `stdin` todo antes de o interpretador rodar. Este teste documenta o comportamento esperado **após** a correção do bug B1 (receber o arquivo por argumento e reservar `stdin` para o programa).
+No `make test`, a entrada vem de `07_scanf.in`.
+
+## Sintaxe
+
+| Teste | Arquivo | O que verifica | Resultado esperado |
+|---|---|---|---|
+| 01 | `Ricardo/01_recuperacao_de_erros.c` | Recuperação de erros sintáticos: o parser continua depois de `;` ou `}` e reporta todos os erros numa execução | 3 erros sintáticos (linhas 6, 10, 13) + 1 semântico (linha 15), `4 erro(s) encontrado(s). O programa nao foi executado.`, código de saída 1 |
+| 02 | `Ricardo/02_linha_exata.c` | Linha exata nos erros semânticos (`%locations`): expressões que continuam na linha seguinte | Erros nas linhas 7 (`y`), 9 (`c`) e 12 (`+` com string), `3 erro(s) encontrado(s)`, código de saída 1 |
+| R01 | `Ricardo/01_escapes_char.c` | Escapes em literais `char`: `'\n'` `'\t'` `'\0'` `'\\'` `'\''` | `codigos: 10 9 0 92 39` |
+| R02 | `Ricardo/02_blocos_vazios.c` | `{ }` como bloco e como corpo de `if`/`else`/`while`/`for` | `i depois do for vazio: 3`, `funcao vazia devolve: 0` |
+| R03 | `Ricardo/03_chamada_antes_da_definicao.c` | `main` chama funções definidas abaixo dela; recursão mútua `par`/`impar` | `dobro(21) = 42`, `par(10) = 1, par(7) = 0`, `impar(7) = 1` |
+| R04 | `Ricardo/04_erros_de_funcao_tardia_e_return.c` | `return` ausente (`if` sem `else`, `return` só no `while`) e erros de chamadas conferidas no fim (aridade, função inexistente) | Erros nas linhas 14, 20, 9 e 10 (nessa ordem), `4 erro(s) encontrado(s)`, código de saída 1 |
 
 ## Ricardo

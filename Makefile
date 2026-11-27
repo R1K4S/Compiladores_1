@@ -14,7 +14,6 @@ BUILD_DIR  := build
 
 LEXER_SRC  := $(LEXER_DIR)/lexel.l
 PARSER_SRC := $(PARSER_DIR)/parser.y
-MAIN_SRC   := $(SRC_DIR)/main.c
 AST_SRC    := $(SRC_DIR)/ast.c
 TABELA_SRC := $(SRC_DIR)/tabela.c
 AMBIENTE_SRC := $(SRC_DIR)/ambiente.c
@@ -23,7 +22,6 @@ INTERP_SRC := $(SRC_DIR)/interpretador.c
 LEXER_C    := $(BUILD_DIR)/lex.yy.c
 PARSER_C   := $(BUILD_DIR)/parser.tab.c
 PARSER_H   := $(BUILD_DIR)/parser.tab.h
-MAIN_O     := $(BUILD_DIR)/main.o
 AST_O      := $(BUILD_DIR)/ast.o
 TABELA_O   := $(BUILD_DIR)/tabela.o
 AMBIENTE_O := $(BUILD_DIR)/ambiente.o
@@ -31,7 +29,7 @@ INTERP_O   := $(BUILD_DIR)/interpretador.o
 
 TARGET     := $(BUILD_DIR)/compilador
 
-.PHONY: all clean run
+.PHONY: all clean run test test-atualizar
 
 all: $(TARGET)
 
@@ -59,19 +57,22 @@ $(AMBIENTE_O): $(AMBIENTE_SRC) $(SRC_DIR)/ambiente.h | $(BUILD_DIR)
 $(INTERP_O): $(INTERP_SRC) $(SRC_DIR)/interpretador.h $(SRC_DIR)/ambiente.h $(SRC_DIR)/ast.h $(PARSER_H) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -c -o $(INTERP_O) $(INTERP_SRC)
 
-# Compila o main.c
-$(MAIN_O): $(MAIN_SRC) $(PARSER_H) $(SRC_DIR)/ast.h $(SRC_DIR)/tabela.h | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -c -o $(MAIN_O) $(MAIN_SRC)
 
-# Compila e linka lexer + parser + ast + tabela + ambiente + interpretador + main no executável final
-$(TARGET): $(LEXER_C) $(PARSER_C) $(AST_O) $(TABELA_O) $(AMBIENTE_O) $(INTERP_O) $(MAIN_O)
-	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -o $(TARGET) $(LEXER_C) $(PARSER_C) $(AST_O) $(TABELA_O) $(AMBIENTE_O) $(INTERP_O) $(MAIN_O)
+# Compila e linka lexer + parser (que contem o main) + ast + tabela + ambiente + interpretador
+$(TARGET): $(LEXER_C) $(PARSER_C) $(AST_O) $(TABELA_O) $(AMBIENTE_O) $(INTERP_O)
+	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I$(SRC_DIR) -o $(TARGET) $(LEXER_C) $(PARSER_C) $(AST_O) $(TABELA_O) $(AMBIENTE_O) $(INTERP_O)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 run: all
 	./$(TARGET)
+
+# Testes automatizados: compara cada Testes/*/*.c com o seu .esperado
+test: all ; @bash scripts/run_tests.sh
+
+# Regrava os .esperado com a saida atual (use so depois de conferir a mudanca)
+test-atualizar: all ; @bash scripts/run_tests.sh --atualizar
 
 clean:
 	rm -rf $(BUILD_DIR)
