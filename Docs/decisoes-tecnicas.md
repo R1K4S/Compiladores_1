@@ -73,11 +73,13 @@ Se houver **qualquer** erro léxico, sintático ou semântico, a fase de execuç
 - A linha de cada símbolo (`@n`, via `%locations`) está disponível na hora de reportar o erro.
 
 **Consequências:**
-- Uma função precisa estar **definida acima** do ponto em que é chamada. Como não há protótipos, recursão mútua não é possível (Especificação, Seção 8.3).
+- Uma chamada a uma função ainda não vista (definida mais abaixo, ou em recursão mútua) não pode ser conferida na hora. Ela é guardada numa lista de **chamadas pendentes**, com os tipos dos argumentos calculados no escopo da chamada, e conferida no fim do parse (`verificar_chamadas_pendentes`). Esses erros saem no fim da lista, e o tipo de retorno dessas chamadas não é checado no ponto de uso.
 - Para as mensagens apontarem a linha exata, o parser usa `%locations`: o lexer grava a linha de cada token em `yylloc` (`YY_USER_ACTION`), e as ações usam `@n.first_line` do símbolo do erro, em vez de `yylineno`. O `yylineno` já estaria na linha do *lookahead*, às vezes uma linha depois. Os erros **sintáticos** continuam na linha do token inesperado.
 - Os tipos são inferidos sob demanda (`tipo_da_expressao`), em vez de anotados nos nós da AST.
 
-**Alternativa considerada:** uma 2ª passada sobre a AST resolveria a ordem das funções, mas exigiria guardar escopos na própria AST. Fica como melhoria futura.
+**Alternativa considerada:** uma 2ª passada completa sobre a AST também resolveria a ordem das funções, mas exigiria guardar escopos na própria AST. As chamadas pendentes resolvem o caso das funções com bem menos código.
+
+A checagem de `return` ausente também roda no parser, quando a definição de função é reduzida: uma análise de caminhos sobre o corpo (`lista_sempre_retorna`). Ela é pulada quando a função teve erro sintático, porque o corpo recuperado está incompleto e daria um falso positivo.
 
 ### D7. Tabela de símbolos como pilha de escopos encadeados
 
@@ -164,13 +166,15 @@ Se houver **qualquer** erro léxico, sintático ou semântico, a fase de execuç
 | P8 | Escapes em literal `char` | `'\n'` virava `'\\'` (código 92) | O lexer guardava `yytext[1]`, que num escape é a própria barra | Função `valor_char_literal` no `lexel.l` traduz `\n`, `\t`, `\0` e os demais |
 | P9 | Bloco vazio rejeitado | `if (x) { }` e `int f() { }` davam erro sintático | `lista_comandos` exigia ao menos 1 comando | Alternativas `bloco_inicio bloco_fim` e `LBRACE RBRACE` (sem conflitos no Bison) |
 | P10 | Linha do erro deslocada | Um erro numa expressão que continuava na linha seguinte era acusado nessa linha seguinte | As ações usavam `yylineno`, que já estava no *lookahead* | `%locations` + `@n.first_line` (D6) |
+| P11 | Chamada antes da definição rejeitada | `main` no topo do arquivo chamando funções definidas abaixo dava `funcao nao declarada`; recursão mútua era impossível | Análise semântica numa passada só | Chamadas pendentes conferidas no fim do parse (D6) |
+| P12 | `return` ausente não detectado | Função `int` sem `return` em algum caminho devolvia 0 silenciosamente | Faltava análise de caminhos | `lista_sempre_retorna` na redução de `definicao_funcao` (D6) |
 
 ## 4. Limitações conhecidas
 
 | Limitação | Exemplo | Caminho de solução |
 |---|---|---|
-| Função precisa ser definida antes do uso; sem recursão mútua | `a()` chama `b()`, definida abaixo | Pré-registrar as funções ou fazer uma 2ª passada semântica (D6) |
-| Ausência de `return` não é detectada | Função `int` sem `return` devolve 0 | Análise de caminhos na AST (Especificação, Seção 11, item 7) |
+| Tipo de retorno não conferido em chamada antes da definição | `char c = f();` com `f` `int` definida abaixo | Guardar também o tipo esperado na chamada pendente |
+| Erros de chamadas pendentes saem fora de ordem | Aparecem no fim, depois de erros de linhas posteriores | Acumular os erros e imprimir ordenados por linha |
 | `printf` sem largura/precisão e sem checagem de tipo | `%.2f`; `%d` com `float` | Validar o formato no parser, contra os tipos dos argumentos |
 | AST e escopo global não são liberados ao final | — | Função `liberar_ast`; irrelevante para um processo de vida curta |
 

@@ -353,7 +353,7 @@ Parâmetros são passados **por valor**: a função recebe uma cópia, e alterá
 
 Uma função pode retornar `int`, `float` ou `char` (não existe `void`). Ela **deve** executar um `return` com uma expressão compatível com esse tipo; `return;` sem expressão não é permitido. O valor retornado é convertido para o tipo de retorno declarado (por exemplo, `return 3.9;` numa função `int` devolve `3`).
 
-**Limitação atual:** a ausência de `return` ainda não é detectada (Seção 11, item 7). Uma função que termina sem executar `return` devolve `0` do seu tipo.
+Toda função precisa **sempre** terminar num `return`; caso contrário, é erro semântico (`funcao 'f' pode terminar sem 'return'`). A verificação é conservadora: um comando só conta como "sempre retorna" se for um `return`, um bloco que contenha um comando que sempre retorna, ou um `if` **com `else`** em que os dois ramos sempre retornam. Um `return` só dentro de um `while`/`for`, ou só no `if` sem `else`, não basta, porque a condição pode ser falsa. Isso vale também para `main`.
 
 ```c
 float calcularMedia(float a, float b) {
@@ -369,11 +369,11 @@ int total = somar(5, 7);
 
 O número de argumentos na chamada deve ser **exatamente igual** ao número de parâmetros na definição, e cada argumento deve ter tipo compatível com o parâmetro correspondente (mesmas regras de conversão da Seção 6).
 
-**A função precisa estar definida antes (acima) do ponto onde é chamada.** A análise semântica é feita numa única passada durante o parse, então chamar uma função definida mais abaixo no arquivo é erro semântico (`funcao '...' nao declarada`). Como não há protótipos, isso também impede a recursão mútua (Seção 8.4).
+Uma função pode ser chamada **antes** (acima) de sua definição no arquivo. Quando o parser encontra uma chamada a uma função ainda desconhecida, a verificação (existência, aridade e tipos dos argumentos) fica pendente e é feita no fim da análise, quando todas as funções já foram vistas. Por isso esses erros aparecem no fim da lista de erros. Limitação: nesse caso o tipo de **retorno** da função não é conferido no ponto da chamada (em `int x = f();`, com `f` definida abaixo).
 
 ### 8.4 Recursão
 
-**Recursão direta é permitida**: uma função pode chamar a si mesma. Recursão **mútua** (`a` chama `b`, que chama `a`) não é possível, porque uma das duas teria de ser chamada antes de ser definida (Seção 8.3). O interpretador limita a profundidade a **1.000 chamadas aninhadas**; acima disso, gera erro de execução. Isso não exige nenhuma regra semântica adicional além das já definidas — decorre naturalmente do modelo de execução: cada chamada de função cria um novo ambiente de execução (um novo conjunto de variáveis locais e parâmetros) empilhado sobre o ambiente do chamador (ver Seção 8.1). Enquanto essa pilha de ambientes existir, chamadas recursivas funcionam sem tratamento especial.
+**Recursão é permitida**, direta (uma função chama a si mesma) ou **mútua** (`a` chama `b`, que chama `a`; ver Seção 8.3). O interpretador limita a profundidade a **1.000 chamadas aninhadas**; acima disso, gera erro de execução. Isso não exige nenhuma regra semântica adicional — decorre naturalmente do modelo de execução: cada chamada de função cria um novo ambiente de execução (um novo conjunto de variáveis locais e parâmetros) empilhado sobre o ambiente do chamador (ver Seção 8.1). Enquanto essa pilha de ambientes existir, chamadas recursivas funcionam sem tratamento especial.
 
 ```c
 int fatorial(int n) {
@@ -464,9 +464,9 @@ Este catálogo serve de referência para os testes do analisador semântico.
 | 4 | Número incorreto de argumentos em chamada de função | `soma(int a,int b){...}` chamada como `soma(10);` | Erro semântico | ✅ Implementado |
 | 5 | Tipo incompatível em atribuição/inicialização | `char c = 10.5;` | Erro semântico | ✅ Implementado |
 | 6 | Ausência da função `int main()` | Programa sem `main` | Erro semântico | ✅ Implementado |
-| 7 | `return` ausente em função com tipo de retorno, ou com tipo incompatível | Função `int` que não executa `return`, ou que retorna um `char` | Erro semântico | ⚠️ Parcial: tipo incompatível é verificado; ausência de `return` em algum caminho ainda não |
+| 7 | `return` ausente em função com tipo de retorno, ou com tipo incompatível | Função `int` que não executa `return`, ou que retorna um `char` | Erro semântico | ✅ Implementado (análise de caminhos, Seção 8.2) |
 | 8 | Argumento de tipo incompatível | `letra(10)` com parâmetro `char` | Erro semântico | ✅ Implementado |
-| 9 | Chamada de algo que não é função, ou de função não declarada (ou declarada abaixo) | `int n; n(1);` | Erro semântico | ✅ Implementado |
+| 9 | Chamada de algo que não é função, ou de função que não existe no programa | `int n; n(1);` | Erro semântico | ✅ Implementado |
 | 10 | Função ou parâmetro redeclarado | `int f(int a, int a)` | Erro semântico | ✅ Implementado |
 | 11 | `main` com assinatura diferente de `int main()` | `float main(int x)` | Erro semântico | ✅ Implementado |
 | 12 | `return` fora de função | `return 0;` no nível do programa | Erro semântico | ✅ Implementado |

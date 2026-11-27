@@ -22,12 +22,19 @@ int tipo_retorno_atual = -1; // Tipo de retorno da funcao sendo parseada no mome
    O lexer (lexel.l) tambem incrementa este contador. */
 int total_erros = 0;
 
+/* Erros sintaticos ja vistos, e quantos havia ao comecar a funcao atual: se a funcao teve
+   erro sintatico, seu corpo esta incompleto e a checagem de return ausente e pulada */
+static int erros_sintaticos = 0;
+static int erros_sintaticos_inicio_funcao = 0;
+
 /* Reporta um erro semantico em stderr e o contabiliza */
 #define ERRO_SEMANTICO(...) do { total_erros++; fprintf(stderr, __VA_ARGS__); } while (0)
 
 /* Definidas no fim do arquivo (lá os tokens, como INT, já existem) */
 static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params, int linha);
 static void verificar_main(void);
+static void verificar_chamadas_pendentes(void);
+static int lista_sempre_retorna(const NoAST* lista);
 static NoAST* criar_binaria_verificada(int op, NoAST* esq, NoAST* dir, int linha);
 static NoAST* criar_unaria_verificada(int op, NoAST* operando, int linha);
 static NoAST* validar_chamada(const char* nome, NoAST* argumentos, int linha);
@@ -117,7 +124,14 @@ item:
 definicao_funcao:
       tipo ID LPAREN parametros_opt RPAREN { iniciar_funcao($1, $2, $4, @2.first_line); }
       corpo_funcao
-        { restaurar_escopo(NIVEL_GLOBAL); tipo_retorno_atual = -1; $$ = criar_no_funcao($1, $2, $4, criar_no_bloco($7)); }
+        {
+          if (erros_sintaticos == erros_sintaticos_inicio_funcao && !lista_sempre_retorna($7)) {
+              ERRO_SEMANTICO("Erro Semantico na linha %d: funcao '%s' pode terminar sem 'return'.\n",
+                             @2.first_line, $2);
+          }
+          restaurar_escopo(NIVEL_GLOBAL); tipo_retorno_atual = -1;
+          $$ = criar_no_funcao($1, $2, $4, criar_no_bloco($7));
+        }
     ;
 
 /* Corpo da funcao. As duas ultimas alternativas recuperam erros sintaticos:
@@ -296,6 +310,7 @@ static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params, in
     /* Funcoes so existem no nivel do programa: se um erro sintatico anterior deixou
        escopos abertos, volta ao global antes de registrar esta funcao */
     restaurar_escopo(NIVEL_GLOBAL);
+    erros_sintaticos_inicio_funcao = erros_sintaticos;
     tipo_retorno_atual = tipo_retorno;
 
     int n = 0;
@@ -347,32 +362,16 @@ static NoAST* criar_unaria_verificada(int op, NoAST* operando, int linha) {
 }
 
 /* Verifica existencia da funcao, aridade e tipos dos argumentos antes de construir o no de chamada */
-static NoAST* validar_chamada(const char* nome, NoAST* argumentos, int linha) {
-    Simbolo* s = buscar_variavel(nome);
-
-    if (s == NULL) {
-        ERRO_SEMANTICO("Erro Semantico na linha %d: funcao '%s' nao declarada.\n", linha, nome);
-        return criar_no_chamada(nome, argumentos);
-    }
-
-    if (!s->eh_funcao) {
-        ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' nao e uma funcao.\n", linha, nome);
-        return criar_no_chamada(nome, argumentos);
-    }
-
-    int n_args = 0;
-    for (NoAST* a = argumentos; a != NULL; a = a->proximo) n_args++;
-
+/* Confere aridade e tipos de uma chamada contra a assinatura da funcao 's' */
+static void checar_assinatura(const Simbolo* s, const char* nome, int n_args, const int* tipos_args, int linha) {
     if (n_args != s->num_params) {
         ERRO_SEMANTICO(
             "Erro Semantico na linha %d: funcao '%s' espera %d argumento(s), recebeu %d.\n",
             linha, nome, s->num_params, n_args);
-        return criar_no_chamada(nome, argumentos);
+        return;
     }
-
-    int i = 0;
-    for (NoAST* a = argumentos; a != NULL; a = a->proximo, i++) {
-        int t_arg = tipo_da_expressao(a);
+    for (int i = 0; i < n_args; i++) {
+        int t_arg = tipos_args[i];
         int t_param = s->tipos_params[i];
         if (t_arg != -1 && !tipos_compativeis(t_param, t_arg)) {
             ERRO_SEMANTICO(
@@ -380,8 +379,92 @@ static NoAST* validar_chamada(const char* nome, NoAST* argumentos, int linha) {
                 linha, i + 1, nome, nome_token(t_param));
         }
     }
+}
 
+/* Chamadas a funcoes ainda nao vistas (definidas mais abaixo no arquivo, ou recursao
+   mutua). Sao conferidas no fim do parse, quando todas as funcoes ja foram registradas. */
+typedef struct ChamadaPendente {
+    char* nome;
+    int n_args;
+    int* tipos_args;
+    int linha;
+    struct ChamadaPendente* proximo;
+} ChamadaPendente;
+
+static ChamadaPendente* pendentes = NULL;
+static ChamadaPendente* ultima_pendente = NULL;
+
+/* Verifica existencia da funcao, aridade e tipos dos argumentos antes de construir o no de chamada */
+static NoAST* validar_chamada(const char* nome, NoAST* argumentos, int linha) {
+    int n_args = 0;
+    for (NoAST* a = argumentos; a != NULL; a = a->proximo) n_args++;
+
+    /* Os tipos dos argumentos sao calculados agora, no escopo da chamada */
+    int* tipos = (int*)malloc((n_args > 0 ? n_args : 1) * sizeof(int));
+    int i = 0;
+    for (NoAST* a = argumentos; a != NULL; a = a->proximo) tipos[i++] = tipo_da_expressao(a);
+
+    Simbolo* s = buscar_variavel(nome);
+    if (s == NULL) {
+        /* Ainda nao declarada: pode ser definida mais abaixo. Confere no fim (verificar_chamadas_pendentes) */
+        ChamadaPendente* p = (ChamadaPendente*)malloc(sizeof(ChamadaPendente));
+        p->nome = strdup(nome);
+        p->n_args = n_args;
+        p->tipos_args = tipos;
+        p->linha = linha;
+        p->proximo = NULL;
+        if (ultima_pendente) ultima_pendente->proximo = p; else pendentes = p;
+        ultima_pendente = p;
+        return criar_no_chamada(nome, argumentos);
+    }
+
+    if (!s->eh_funcao) {
+        ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' nao e uma funcao.\n", linha, nome);
+    } else {
+        checar_assinatura(s, nome, n_args, tipos, linha);
+    }
+    free(tipos);
     return criar_no_chamada(nome, argumentos);
+}
+
+/* Chamada apos o parse, no escopo global: confere as chamadas que ficaram pendentes */
+static void verificar_chamadas_pendentes(void) {
+    restaurar_escopo(NIVEL_GLOBAL);
+    for (ChamadaPendente* p = pendentes; p != NULL; p = p->proximo) {
+        Simbolo* s = buscar_variavel(p->nome);
+        if (s == NULL) {
+            ERRO_SEMANTICO("Erro Semantico na linha %d: funcao '%s' nao declarada.\n", p->linha, p->nome);
+        } else if (!s->eh_funcao) {
+            ERRO_SEMANTICO("Erro Semantico na linha %d: '%s' nao e uma funcao.\n", p->linha, p->nome);
+        } else {
+            checar_assinatura(s, p->nome, p->n_args, p->tipos_args, p->linha);
+        }
+    }
+}
+
+/* ---- Checagem de 'return' ausente (Especificacao, Secao 11, item 7) ----
+   Um comando "sempre retorna" se for um return, um bloco cuja lista sempre retorna,
+   ou um if COM else em que os dois ramos sempre retornam. Lacos nao contam
+   (a condicao pode ser falsa ja na primeira vez). */
+static int lista_sempre_retorna(const NoAST* lista);
+
+static int comando_sempre_retorna(const NoAST* no) {
+    if (no == NULL) return 0;
+    switch (no->tipo) {
+        case NO_RETURN: return 1;
+        case NO_BLOCO:  return lista_sempre_retorna(no->esq);
+        case NO_IF:     return no->centro != NULL
+                            && comando_sempre_retorna(no->dir)
+                            && comando_sempre_retorna(no->centro);
+        default:        return 0;
+    }
+}
+
+static int lista_sempre_retorna(const NoAST* lista) {
+    for (; lista != NULL; lista = lista->proximo) {
+        if (comando_sempre_retorna(lista)) return 1;
+    }
+    return 0;
 }
 
 /* Mapeia o especificador do scanf para o token de tipo esperado, ou -1 se invalido */
@@ -436,6 +519,7 @@ static void verificar_main(void) {
 void yyerror(const char *s)
 {
     total_erros++;
+    erros_sintaticos++;
     fprintf(stderr, "Erro sintático na linha %d: %s\n", yylineno, s);
 }
 
@@ -472,6 +556,7 @@ int main(int argc, char** argv)
     int resultado_parse = yyparse();
     if (resultado_parse == 0) {
         verificar_main();
+        verificar_chamadas_pendentes();
     }
 
     /* Qualquer erro (lexico, sintatico ou semantico) impede a execucao e sai com codigo 1 */
