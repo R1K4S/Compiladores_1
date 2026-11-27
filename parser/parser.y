@@ -74,6 +74,7 @@ static NoAST* criar_incremento(const char* nome, int op);
 
 %type <no> programa lista_comandos comando declaracao lista_declaracoes declaracao_variavel expressao
 %type <no> for_init
+%type <no> corpo_funcao
 %type <no> lista_itens item definicao_funcao parametros_opt lista_parametros parametro argumentos_opt lista_argumentos
 %type <int_val> tipo
 
@@ -105,12 +106,23 @@ lista_itens:
 item:
       comando               { $$ = $1; }
     | definicao_funcao      { $$ = $1; }
+    /* Recuperacao de erro no nivel do programa (ex.: cabecalho de funcao invalido):
+       descarta tokens ate o proximo '}' e segue para o proximo item */
+    | error RBRACE          { yyerrok; $$ = NULL; }
     ;
 
 definicao_funcao:
       tipo ID LPAREN parametros_opt RPAREN { iniciar_funcao($1, $2, $4); }
-      LBRACE lista_comandos RBRACE
-        { sair_escopo(); tipo_retorno_atual = -1; $$ = criar_no_funcao($1, $2, $4, criar_no_bloco($8)); }
+      corpo_funcao
+        { restaurar_escopo(NIVEL_GLOBAL); tipo_retorno_atual = -1; $$ = criar_no_funcao($1, $2, $4, criar_no_bloco($7)); }
+    ;
+
+/* Corpo da funcao. As duas ultimas alternativas recuperam erros sintaticos:
+   descartam tokens ate o '}' e continuam a analise do resto do programa. */
+corpo_funcao:
+      LBRACE lista_comandos RBRACE          { $$ = $2; }
+    | LBRACE lista_comandos error RBRACE    { yyerrok; $$ = $2; }
+    | LBRACE error RBRACE                   { yyerrok; $$ = NULL; }
     ;
 
 parametros_opt:
@@ -153,7 +165,14 @@ comando:
                                 { sair_escopo(); $$ = criar_no_for($3, $4, $6, $8); }
     | bloco_inicio lista_comandos bloco_fim
                                 { $$ = criar_no_bloco($2); }
-    /*| LBRACE lista_comandos RBRACE*/
+    /* Recuperacao de erros sintaticos (semana 05): o Bison descarta tokens ate achar
+       ';' ou '}' e a analise continua, para reportar varios erros numa execucao.
+       Como ha erro, o programa nao sera executado (ver main). */
+    | bloco_inicio lista_comandos error bloco_fim
+                                { yyerrok; $$ = criar_no_bloco($2); }
+    | bloco_inicio error bloco_fim
+                                { yyerrok; $$ = NULL; }
+    | error SEMI                { yyerrok; $$ = NULL; }
     | declaracao                { $$ = $1; }
     | SCANF LPAREN STRING_LITERAL COMMA ID RPAREN SEMI { $$ = validar_scanf($3, $5); }
     | PRINTF LPAREN STRING_LITERAL RPAREN SEMI { $$ = criar_no_printf($3, NULL); }
@@ -269,6 +288,9 @@ lista_argumentos:
 /* Chamada logo após o ')' de uma definição de função: registra a função na tabela
    (no escopo atual), abre o escopo da função e insere os parâmetros nele. */
 static void iniciar_funcao(int tipo_retorno, const char* nome, NoAST* params) {
+    /* Funcoes so existem no nivel do programa: se um erro sintatico anterior deixou
+       escopos abertos, volta ao global antes de registrar esta funcao */
+    restaurar_escopo(NIVEL_GLOBAL);
     tipo_retorno_atual = tipo_retorno;
 
     int n = 0;
@@ -399,6 +421,7 @@ static NoAST* criar_incremento(const char* nome, int op) {
 /* Todo programa precisa ter uma função 'main'.
    Chamada após o parse, quando o escopo global é o escopo atual. */
 static void verificar_main(void) {
+    restaurar_escopo(NIVEL_GLOBAL);
     Simbolo* m = buscar_variavel("main");
     if (m == NULL || !m->eh_funcao) {
         ERRO_SEMANTICO("Erro Semantico: funcao 'main' nao encontrada. Todo programa precisa de 'int main()'.\n");

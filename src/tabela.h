@@ -17,9 +17,19 @@ typedef struct Escopo {
     struct Escopo* pai;     /* Ponteiro para o escopo externo */
 } Escopo;
 
+/* Nivel do escopo global (criado por inicializar_tabela) */
+#define NIVEL_GLOBAL 1
+
 void inicializar_tabela();
 void entrar_escopo();
 void sair_escopo();
+
+/* Quantos escopos estao abertos (1 = so o global) */
+int nivel_escopo(void);
+
+/* Fecha escopos ate restar 'nivel' abertos. Usado para ressincronizar a tabela
+   depois de um erro sintatico, quando o Bison descarta um '}' que fecharia um escopo. */
+void restaurar_escopo(int nivel);
 int inserir_variavel(const char* nome, int tipo_dado);
 int inserir_funcao(const char* nome, int tipo_retorno, int num_params, const int* tipos_params);
 Simbolo* buscar_variavel(const char* nome);

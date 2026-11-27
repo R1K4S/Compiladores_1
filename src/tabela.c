@@ -4,6 +4,7 @@
 #include "tabela.h"
 
 Escopo* escopo_atual = NULL;
+static int nivel = 0; /* quantidade de escopos abertos */
 
 void inicializar_tabela() {
     entrar_escopo(); // Cria o escopo global base
@@ -14,6 +15,7 @@ void entrar_escopo() {
     novo_escopo->tabela = NULL;
     novo_escopo->pai = escopo_atual;
     escopo_atual = novo_escopo;
+    nivel++;
 }
 
 void sair_escopo() {
@@ -21,6 +23,7 @@ void sair_escopo() {
 
     Escopo* escopo_removido = escopo_atual;
     escopo_atual = escopo_atual->pai;
+    nivel--;
 
     // liberando a memória de todas as variáveis do escopo que esta sendo fechado
     Simbolo* atual = escopo_removido->tabela;
@@ -32,6 +35,16 @@ void sair_escopo() {
         atual = proximo;
     }
     free(escopo_removido);
+}
+
+int nivel_escopo(void) {
+    return nivel;
+}
+
+void restaurar_escopo(int alvo) {
+    while (nivel > alvo && escopo_atual != NULL) {
+        sair_escopo();
+    }
 }
 
 int inserir_variavel(const char* nome, int tipo_dado) {

@@ -95,7 +95,7 @@ lista_argumentos : expressao
                  | lista_argumentos COMMA expressao ;
 ```
 
-Por simplicidade de leitura, foram omitidas acima as regras auxiliares sem símbolos próprios: `bloco_inicio: LBRACE` / `bloco_fim: RBRACE` e `for_inicio: FOR`. Elas existem só para abrir e fechar escopos na tabela de símbolos no momento certo do parse.
+Também foram omitidas acima as alternativas de recuperação de erro com o token `error` (Seção 5) e a divisão do corpo da função na regra `corpo_funcao`. Por simplicidade de leitura, foram omitidas ainda as regras auxiliares sem símbolos próprios: `bloco_inicio: LBRACE` / `bloco_fim: RBRACE` e `for_inicio: FOR`. Elas existem só para abrir e fechar escopos na tabela de símbolos no momento certo do parse.
 
 ## 3. Precedência e associatividade
 
@@ -134,4 +134,26 @@ Erro sintático na linha 1: syntax error, unexpected SEMI
 Erro sintático na linha 1: syntax error, unexpected NUM, expecting SEMI or COMMA
 ```
 
-Ainda não há recuperação de erros (regras com o token `error`): a análise para no primeiro erro sintático.
+### Recuperação de erros
+
+Como na semana 05 do COMP1, o parser usa o token `error` do Bison para **continuar a análise depois de um erro sintático** e reportar vários erros numa única execução. O programa nunca é executado se houver qualquer erro.
+
+| Regra | Onde age | Ressincroniza em |
+|---|---|---|
+| `comando: error SEMI` | Qualquer comando | próximo `;` |
+| `comando: bloco_inicio lista_comandos error bloco_fim` e `bloco_inicio error bloco_fim` | Dentro de um bloco `{ ... }` | `}` do bloco (fecha o escopo dele normalmente) |
+| `corpo_funcao: LBRACE lista_comandos error RBRACE` e `LBRACE error RBRACE` | Corpo de função | `}` da função |
+| `item: error RBRACE` | Nível do programa (ex.: cabeçalho de função inválido) | próximo `}` |
+
+Todas chamam `yyerrok`, para que o próximo erro também seja reportado. Quando o Bison descarta um `}`, o escopo aberto por ele na tabela de símbolos ficaria aberto. Por isso, ao começar cada função e ao final do parse, o parser volta ao escopo global (`restaurar_escopo(NIVEL_GLOBAL)`).
+
+**Erros em cascata:** se falta um `(`, `)` ou `{`, um `}` pode ser interpretado como fim da função. Os comandos seguintes então geram erros extras, por exemplo "variável não declarada" ou "'return' fora de uma funcao". Corrija sempre o **primeiro** erro da lista e rode de novo.
+
+```text
+$ ./build/compilador Testes/Sintaxe/01_recuperacao_de_erros.c
+Erro sintático na linha 6: syntax error, unexpected SEMI
+Erro sintático na linha 10: syntax error, unexpected SEMI
+Erro sintático na linha 13: syntax error, unexpected SEMI
+Erro Semantico na linha 15: Variavel 'nao_declarada' nao declarada.
+4 erro(s) encontrado(s). O programa nao foi executado.
+```
