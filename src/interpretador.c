@@ -266,6 +266,9 @@ void interpretar_comando(const NoAST* no) {
             ambiente_sair_escopo();
             break;
         case NO_FUNCAO:
+            if (no->dado.string_val != NULL && strcmp(no->dado.string_val, "main") == 0) {
+                interpretar_comando(no->dir);
+            }
             break;
         case NO_SCANF: {
             const char* formato = no->dado.string_val;
