@@ -7,6 +7,7 @@ O interpretador lê um programa MiniC, faz a análise léxica, sintática e sem�
 - Especificação completa da linguagem: [Docs/Especificacao.md](Docs/Especificacao.md)
 - Gramática (EBNF): [Docs/gramatica_minic.md](Docs/gramatica_minic.md)
 - AST e tabela de símbolos: [Docs/AST_e_Tabela_de_Simbolos.md](Docs/AST_e_Tabela_de_Simbolos.md)
+- Decisões técnicas e registro de problemas: [Docs/decisoes-tecnicas.md](Docs/decisoes-tecnicas.md)
 - Instalação do ambiente (Linux, WSL, macOS): [Docs/Guia de Instalação.md](Docs/Guia%20de%20Instala%C3%A7%C3%A3o.md)
 - Testes: [Testes/DocumentoDeTestes.MD](Testes/DocumentoDeTestes.MD)
 - Como contribuir: [Docs/Contribuicao.md](Docs/Contribuicao.md)
