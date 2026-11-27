@@ -1,0 +1,19 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Declaracao int
+    ID a
+    Int 0
+  Printf antes\n
+  Printf %d\n
+    Op /
+      Int 10
+      ID a
+  Printf depois\n
+  Funcao int main
+    Bloco
+      Return
+        Int 0
+antes
+--- stderr ---
+Erro de execucao: divisao por zero.
+--- exit: 1 ---

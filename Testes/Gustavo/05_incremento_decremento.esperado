@@ -1,0 +1,105 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID x
+        Int 5
+      Atribuicao
+        ID x
+        Op +
+          ID x
+          Int 1
+      Printf apos x++: esperado 6  obtido: %d\n
+        ID x
+      Atribuicao
+        ID x
+        Op +
+          ID x
+          Int 1
+      Printf apos ++x: esperado 7  obtido: %d\n
+        ID x
+      Atribuicao
+        ID x
+        Op -
+          ID x
+          Int 1
+      Printf apos x--: esperado 6  obtido: %d\n
+        ID x
+      Atribuicao
+        ID x
+        Op -
+          ID x
+          Int 1
+      Printf apos --x: esperado 5  obtido: %d\n
+        ID x
+      Declaracao int
+        ID soma
+        Int 0
+      For
+        Declaracao int
+          ID i
+          Int 1
+        Op <=
+          ID i
+          Int 5
+        Atribuicao
+          ID i
+          Op +
+            ID i
+            Int 1
+        Bloco
+          Atribuicao
+            ID soma
+            Op +
+              ID soma
+              ID i
+      Printf soma 1..5 com i++: esperado 15  obtido: %d\n
+        ID soma
+      Declaracao int
+        ID prod
+        Int 1
+      For
+        Declaracao int
+          ID j
+          Int 5
+        Op >=
+          ID j
+          Int 1
+        Atribuicao
+          ID j
+          Op -
+            ID j
+            Int 1
+        Bloco
+          Atribuicao
+            ID prod
+            Op *
+              ID prod
+              ID j
+      Printf 5! com j--: esperado 120  obtido: %d\n
+        ID prod
+      Declaracao float
+        ID f
+        Float 2.5
+      Atribuicao
+        ID f
+        Op +
+          ID f
+          Int 1
+      Printf 2.5 apos f++: esperado 3.500000  obtido: %f\n
+        ID f
+      Return
+        Int 0
+apos x++: esperado 6  obtido: 6
+apos ++x: esperado 7  obtido: 7
+apos x--: esperado 6  obtido: 6
+apos --x: esperado 5  obtido: 5
+soma 1..5 com i++: esperado 15  obtido: 15
+5! com j--: esperado 120  obtido: 120
+2.5 apos f++: esperado 3.500000  obtido: 3.500000
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

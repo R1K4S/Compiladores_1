@@ -5,6 +5,21 @@
 #include <string.h>
 
 extern int total_erros; /* definido em parser.y: erros impedem a execucao */
+
+/* Linha de cada token para o Bison (%locations): usada nas mensagens de erro */
+#define YY_USER_ACTION yylloc.first_line = yylloc.last_line = yylineno;
+
+/* Valor de um literal char: 'a' -> 'a'; '\n' -> nova linha; '\t' -> tab; '\0' -> 0;
+   '\\', '\'' e '\"' -> o proprio caractere */
+static int valor_char_literal(const char* texto) {
+    if (texto[1] != '\\') return (unsigned char)texto[1];
+    switch (texto[2]) {
+        case 'n': return '\n';
+        case 't': return '\t';
+        case '0': return '\0';
+        default:  return (unsigned char)texto[2];
+    }
+}
 %}
 
 %option yylineno
@@ -38,7 +53,7 @@ extern int total_erros; /* definido em parser.y: erros impedem a execucao */
                                         yylval.int_val = atoi(yytext);
                                         return NUM;
                                     }
-'([^'\\\n]|\\.)'                    { yylval.int_val = yytext[1]; return CHAR_LITERAL; }
+'([^'\\\n]|\\.)'                    { yylval.int_val = valor_char_literal(yytext); return CHAR_LITERAL; }
 \"([^\"\\\n]|\\.)*\"                { yylval.str_val = strndup(yytext + 1, yyleng - 2); return STRING_LITERAL; }
 
 "=="                                { return EQ; }

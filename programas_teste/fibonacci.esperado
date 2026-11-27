@@ -1,0 +1,66 @@
+Analise sintatica concluida com sucesso!
+Programa
+  Funcao int fibonacci
+    Declaracao int
+      ID n
+    Bloco
+      Declaracao int
+        ID anterior
+        Int 0
+      Declaracao int
+        ID atual
+        Int 1
+      Declaracao int
+        ID proximo
+      Declaracao int
+        ID i
+      If
+        Op ==
+          ID n
+          Int 0
+        Bloco
+          Return
+            Int 0
+      For
+        Atribuicao
+          ID i
+          Int 2
+        Op <=
+          ID i
+          ID n
+        Atribuicao
+          ID i
+          Op +
+            ID i
+            Int 1
+        Bloco
+          Atribuicao
+            ID proximo
+            Op +
+              ID anterior
+              ID atual
+          Atribuicao
+            ID anterior
+            ID atual
+          Atribuicao
+            ID atual
+            ID proximo
+      Return
+        ID atual
+  Funcao int main
+    Bloco
+      Declaracao int
+        ID n
+      Scanf %d
+        ID n
+      Printf %d\n
+        Chamada fibonacci
+          ID n
+      Return
+        Int 0
+832040
+
+Variaveis globais ao final da execucao:
+  (nenhuma)
+--- stderr ---
+--- exit: 0 ---

@@ -1,0 +1,7 @@
+
+--- stderr ---
+Erro Semantico na linha 3: inicializacao incompativel para 'c' (esperado 'char').
+Erro Semantico na linha 6: atribuicao incompativel (tipo 'char' nao aceita o valor atribuido).
+Erro Semantico na linha 8: operador '+' nao pode ser aplicado a uma string.
+3 erro(s) encontrado(s). O programa nao foi executado.
+--- exit: 1 ---

@@ -3,3 +3,9 @@ parser/parser.tab.c
 parser/parser.tab.h
 lexer/lex.yy.c
 teste_compilador
+
+# Executaveis gerados ao compilar os programas de referencia com gcc
+programas_teste/fatorial
+programas_teste/fibonacci
+programas_teste/fibo
+programas_teste/mdc

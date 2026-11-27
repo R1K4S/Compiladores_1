@@ -4,6 +4,7 @@
 #include "tabela.h"
 
 Escopo* escopo_atual = NULL;
+static int nivel = 0; /* quantidade de escopos abertos */
 
 void inicializar_tabela() {
     entrar_escopo(); // Cria o escopo global base
@@ -14,14 +15,16 @@ void entrar_escopo() {
     novo_escopo->tabela = NULL;
     novo_escopo->pai = escopo_atual;
     escopo_atual = novo_escopo;
+    nivel++;
 }
 
 void sair_escopo() {
     if (!escopo_atual) return;
-    
+
     Escopo* escopo_removido = escopo_atual;
     escopo_atual = escopo_atual->pai;
-    
+    nivel--;
+
     // liberando a memória de todas as variáveis do escopo que esta sendo fechado
     Simbolo* atual = escopo_removido->tabela;
     while (atual != NULL) {
@@ -32,6 +35,16 @@ void sair_escopo() {
         atual = proximo;
     }
     free(escopo_removido);
+}
+
+int nivel_escopo(void) {
+    return nivel;
+}
+
+void restaurar_escopo(int alvo) {
+    while (nivel > alvo && escopo_atual != NULL) {
+        sair_escopo();
+    }
 }
 
 int inserir_variavel(const char* nome, int tipo_dado) {
@@ -53,7 +66,7 @@ int inserir_variavel(const char* nome, int tipo_dado) {
     novo_simbolo->tipos_params = NULL;
     novo_simbolo->proximo = escopo_atual->tabela;
     escopo_atual->tabela = novo_simbolo;
-    
+
     return 1; // deu certo
 }
 
@@ -73,7 +86,7 @@ int inserir_funcao(const char* nome, int tipo_retorno, int num_params, const int
 
 Simbolo* buscar_variavel(const char* nome) {
     Escopo* escopo_busca = escopo_atual;
-    
+
     // usando uma busca de dentro para fora
     while (escopo_busca != NULL) {
         Simbolo* atual = escopo_busca->tabela;
