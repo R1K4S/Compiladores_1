@@ -1,13 +1,5 @@
 # Guia de Contribuição — Compiladores_1
 
-## Versionamento
-
-| Versão | Data | Modificação | Responsável |
-|---|---|---|---|
-| | | | |
-
-_Preencha esta tabela a cada alteração relevante feita neste guia._
-
 ## Sobre o projeto
 
 O **Compiladores_1** é um mini-interpretador de C desenvolvido para a disciplina de Compiladores, utilizando **Flex** (análise léxica) e **Bison** (análise sintática).
